@@ -467,3 +467,26 @@ t=2026-11-02T17:34:52+1000 lvl=crit msg="command failed" err="authentication fai
   · 127.0.0.1 - "GET /api/health HTTP/1.1" 200 -
   · 127.0.0.1 - "GET / HTTP/1.1" 200 -
   · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  · 127.0.0.1 - code 404, message File not found
+  · 127.0.0.1 - "GET /seed-none HTTP/1.1" 404 -
+  · 127.0.0.1 - code 404, message File not found
+  · 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  + online: Captain Teddy (local) worth 50 - 1 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=c27623f467f749b4&token=6cfbea97b84e6d5a0f539f8c8bea1d5c HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  - offline: Captain Teddy  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
+  + online: Captain Teddy (local) worth 50 - 1 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=b5d781d1cc755e6d&token=f26bad42c5f1091e8f5739966f890d47 HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  - offline: Captain Teddy
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -

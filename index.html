@@ -319,12 +319,6 @@
     border:1px solid var(--stroke);box-shadow:0 26px 70px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.07);
   }
   .auth-brand{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:16px}
-  .auth-tabs{display:flex;gap:6px;margin-bottom:14px}
-  .atab{
-    flex:1;padding:9px;border-radius:10px;cursor:pointer;font:inherit;font-size:11.5px;font-weight:700;
-    background:rgba(30,48,74,.45);border:1px solid transparent;color:#bcd3ea;
-  }
-  .atab.on{background:linear-gradient(150deg,#2f6ea8,#14344f);color:#eaf6ff;border-color:rgba(143,214,255,.55)}
   .auth-pane label{display:block;font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);
     font-weight:700;margin-bottom:10px}
   .auth-pane input{
@@ -334,26 +328,24 @@
   .auth-pane input:focus{outline:none;border-color:rgba(143,214,255,.7)}
   .auth-pane .btn{margin-top:2px}
   .auth-err{min-height:15px;font-size:11px;font-weight:700;color:#ff8f9a;margin:2px 0 6px}
-  .auth-or{display:flex;align-items:center;gap:10px;margin:16px 0 12px;color:var(--dim);font-size:10px;
-    letter-spacing:1.4px;text-transform:uppercase}
-  .auth-or::before,.auth-or::after{content:"";height:1px;flex:1;background:var(--stroke)}
   #gsi-slot{display:flex;justify-content:center;min-height:0}
   #gsi-slot .auth-err{margin-top:4px;text-align:center}
   .auth-foot{margin-top:16px;display:flex;flex-direction:column;gap:9px;align-items:center}
   .auth-note{font-size:9.5px;color:var(--dim);line-height:1.5;text-align:center}
-  .auth-lead{margin:-6px 0 14px;text-align:center;font-size:10.5px;color:var(--dim);line-height:1.55}
-  .known-label{font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--dim);font-weight:800;
-    margin:0 0 7px}
-  #known-accounts{margin-bottom:14px}
-  .known-btn{
-    display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;margin-bottom:6px;border-radius:11px;
-    cursor:pointer;text-align:left;font:inherit;
-    background:linear-gradient(150deg, rgba(40,62,96,.5), rgba(14,24,40,.5));border:1px solid var(--stroke);
-  }
-  .known-btn:hover{border-color:rgba(143,214,255,.5)}
-  .known-meta{flex:1;min-width:0}
-  .known-meta b{display:block;font-size:12px;font-weight:800;color:#eaf6ff}
-  .known-meta span{display:block;font-size:10px;color:var(--dim)}
+  .auth-lead{margin:-6px 0 12px;text-align:center;font-size:10.5px;color:var(--dim);line-height:1.55}
+  .auth-lead b{color:#eaf6ff}
+  .btn.big{font-size:13.5px;padding:13px 14px;letter-spacing:.5px;margin-bottom:4px;
+    background:linear-gradient(150deg,#2f6ea8,#14344f);border-color:rgba(143,214,255,.6);color:#eaf6ff}
+  #google-play{display:block;width:100%}
+  /* onboarding identity strip: avatar + the Google account being named */
+  .who{display:flex;align-items:center;gap:9px;margin:2px 0 12px;padding:9px 11px;border-radius:12px;
+    background:rgba(143,214,255,.06);border:1px solid var(--stroke);font-size:10.5px;color:var(--dim);
+    line-height:1.45}
+  .who .avatar.sm{width:26px;height:26px;font-size:11px}
+  #un-err{min-height:0;margin-bottom:8px}
+  #un-err:empty{min-height:0}
+  #pane-username .btn{margin-top:4px}
+  #pane-username .auth-note{text-align:left;margin:8px 0 0}
   .profile-chip{gap:8px}
   /* ---------- trading & players ---------- */
   #trade{
@@ -482,34 +474,28 @@
 <div id="auth" class="hidden">
   <div class="auth-card">
     <div class="auth-brand"><span class="brand-mark">⚓</span>
-      <span class="brand-text">Sea Siege<small>Tower Defense</small></span>
-      <button class="btn tiny" id="auth-x" style="width:auto;padding:5px 10px;margin-left:auto">✕ Close</button></div>
-    <p class="auth-lead">Signing in is optional — play the game right away, and add an account whenever
-    you want your progress, gems and collectibles tied to a name.</p>
-    <div id="known-accounts" hidden></div>
-    <div class="auth-tabs">
-      <button class="atab on" data-pane="signin">Sign in</button>
-      <button class="atab" data-pane="signup">Create account</button>
-    </div>
-    <div class="auth-pane" id="pane-signin">
-      <label>Username or email<input id="si-user" autocomplete="username" spellcheck="false" /></label>
-      <label>Password<input id="si-pass" type="password" autocomplete="current-password" /></label>
-      <div class="auth-err" id="si-err"></div>
-      <button class="btn primary" id="si-go">Sign in</button>
-    </div>
-    <div class="auth-pane" id="pane-signup" hidden>
-      <label>Display name<input id="su-name" maxlength="24" placeholder="Captain" /></label>
-      <label>Username or email<input id="su-user" autocomplete="username" spellcheck="false" /></label>
-      <label>Password<input id="su-pass" type="password" autocomplete="new-password" /></label>
-      <label>Confirm password<input id="su-pass2" type="password" autocomplete="new-password" /></label>
-      <div class="auth-err" id="su-err"></div>
-      <button class="btn primary" id="su-go">Create account</button>
-    </div>
-    <div class="auth-or"><span>or</span></div>
+      <span class="brand-text">Sea Siege<small>Tower Defense</small></span></div>
+    <p class="auth-lead"><b>Sign in to play.</b> Guest play has been removed — the harbour, armoury,
+    trading and crates all require an account.</p>
+    <button class="btn primary big" id="google-play">Sign In with Google to Play</button>
     <div id="gsi-slot"></div>
+    <div class="auth-note" id="google-note"></div>
+
+    <!-- First-time onboarding: shown after Google sign-in until a username exists -->
+    <div class="auth-pane" id="pane-username" hidden>
+      <div class="who" id="un-who"></div>
+      <label>Choose your in-game username
+        <input id="un-name" maxlength="16" placeholder="e.g. IronTeddy" autocomplete="off" spellcheck="false" />
+      </label>
+      <div class="auth-err" id="un-err"></div>
+      <button class="btn primary" id="un-go">Confirm Username</button>
+      <p class="auth-note">3–16 characters · letters, numbers and underscores only. Google identifies you;
+      this username is the name other captains see in Trading &amp; Players.</p>
+    </div>
+
     <div class="auth-foot">
-      <span class="auth-note">Local accounts are stored on this device only — the password gates your
-      profile here, it is not a server login. Don't reuse an important password.</span>
+      <span class="auth-note">Sign-in is handled entirely by Google — this game never sees or stores your
+      Google password. Your progress, gems and collectibles are saved against your Google account.</span>
     </div>
   </div>
 </div>
@@ -567,7 +553,7 @@
       <div class="sect2">Progress &amp; unlocks</div>
       <div id="pf-unlocks"></div>
       <div class="board-foot">
-        <button class="btn primary" id="pf-signin">Sign in / create account (optional)</button>
+        <button class="btn primary" id="pf-signin">Sign In with Google to Play</button>
         <button class="btn" id="pf-switch">Switch account</button>
         <button class="btn" id="pf-logout">Log out</button>
         <button class="btn" id="pf-close">Done</button>
@@ -2745,7 +2731,6 @@ function render() {
 // needs a Client ID whose origin list includes this page.
 const ACCOUNTS_KEY = "seaSiege.accounts.v1";
 const AUTH_KEY = "seaSiege.auth.v1";
-const PBKDF2_ITER = 120000;
 // Google OAuth client ID for this game (Web application client). Its *Authorized
 // JavaScript origins* must list every origin the page is served from, e.g.
 // http://localhost:8000 and the ngrok host, or Google will refuse the sign-in.
@@ -2775,27 +2760,25 @@ function activeAccount() {
   return loadAccounts().accounts[auth.current] || null;
 }
 function statsDefaults() { return { waves: 0, bestWave: 0, gold: 0, gems: 0, kills: 0, breaches: 0, runs: 0, seconds: 0 }; }
-// --- password hashing ---------------------------------------------------------
-function toHex(buf) { return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join(""); }
-function randHex(n) {
-  const a = new Uint8Array(n);
-  if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(a);
-  else for (let i = 0; i < n; i++) a[i] = (Math.random() * 256) | 0;
-  return toHex(a);
+// --- display name, onboarding state -------------------------------------------
+// Sign-in is Google-only, so there is no password hashing here at all. An account is
+// identified by its Google `sub`; the in-game name is the username chosen on first run.
+const PENDING_KEY = "seaSiege.pending.v1";
+function displayName(acct) { return (acct && (acct.username || acct.name)) || "Captain"; }
+function setPending(id) {
+  try {
+    if (id) localStorage.setItem(PENDING_KEY, JSON.stringify({ id: id, at: Date.now() }));
+    else localStorage.removeItem(PENDING_KEY);
+  } catch (e) {}
 }
-async function hashPassword(pw, salt) {
-  if (window.crypto && crypto.subtle && crypto.subtle.importKey) {
-    const enc = new TextEncoder();
-    const key = await crypto.subtle.importKey("raw", enc.encode(pw), "PBKDF2", false, ["deriveBits"]);
-    const bits = await crypto.subtle.deriveBits(
-      { name: "PBKDF2", salt: enc.encode(salt), iterations: PBKDF2_ITER, hash: "SHA-256" }, key, 256);
-    return "pbkdf2$" + PBKDF2_ITER + "$" + toHex(bits);
-  }
-  // fallback when WebCrypto is unavailable (insecure context): clearly weaker
-  let h = 2166136261;
-  const s = salt + "|" + pw;
-  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
-  return "weak$" + h.toString(16);
+function readPending() {
+  try { const raw = localStorage.getItem(PENDING_KEY); return raw ? JSON.parse(raw) : null; }
+  catch (e) { return null; }
+}
+function usernameExists(name, exceptId) {
+  const db = loadAccounts();
+  return Object.keys(db.accounts).some(id => id !== exceptId &&
+    String(db.accounts[id].username || "").toLowerCase() === String(name).toLowerCase());
 }
 // --- avatar helpers -----------------------------------------------------------
 function avatarGradient(seed) {
@@ -2855,34 +2838,55 @@ function bumpAccountStats(patch) {
   a.lastSeen = Date.now();
   saveAccounts(db);
 }
-// --- signing in / out ---------------------------------------------------------
-async function createLocalAccount(name, user, pass) {
-  const db = loadAccounts();
-  const key = String(user).trim().toLowerCase();
-  if (Object.values(db.accounts).some(a => (a.user || "").toLowerCase() === key)) {
-    throw new Error("That username is already registered on this device.");
+// --- username onboarding -------------------------------------------------------
+// Shown once per Google account: sign-in identifies the player, this names them.
+function showUsernamePane(acct) {
+  const pane = document.getElementById("pane-username");
+  const who = document.getElementById("un-who");
+  if (who) {
+    who.textContent = "";
+    const av = el("span", "avatar sm");
+    paintAvatar(av, acct);
+    who.appendChild(av);
+    who.appendChild(el("span", null, (acct.email || acct.name || "Google account") +
+      " — pick the name other captains will see"));
   }
-  const id = "local:" + key;
-  const salt = randHex(16);
-  const hash = await hashPassword(pass, salt);
-  db.accounts[id] = {
-    id, provider: "local", name: String(name || user).trim() || user, user: String(user).trim(),
-    email: /@/.test(user) ? String(user).trim() : null, avatar: null, salt, hash,
-    createdAt: Date.now(), lastSeen: Date.now(), stats: statsDefaults(), save: null, boards: null
-  };
-  db.order = (db.order || []).concat(id);
-  saveAccounts(db);
-  return db.accounts[id];
+  const gbtn = document.getElementById("google-play");
+  if (gbtn) gbtn.hidden = true;                      // already signed in with Google
+  const slot = document.getElementById("gsi-slot");
+  if (slot) slot.hidden = true;
+  if (pane) pane.hidden = false;
+  setAuthError("un", "");
+  const input = document.getElementById("un-name");
+  if (input) { input.value = ""; input.focus(); }
 }
-async function signInLocal(user, pass) {
+function confirmUsername() {
+  setAuthError("un", "");                  // never leave a stale error on a good submit
+  const pend = readPending();
   const db = loadAccounts();
-  const key = String(user).trim().toLowerCase();
-  const acct = Object.values(db.accounts).find(a => a.provider === "local" && (a.user || "").toLowerCase() === key);
-  if (!acct) throw new Error("No local account with that username on this device.");
-  const hash = await hashPassword(pass, acct.salt);
-  if (hash !== acct.hash) throw new Error("Incorrect password.");
-  return acct;
+  const acct = pend && db.accounts[pend.id];
+  if (!acct) { setAuthError("un", "Your Google session expired — sign in with Google again."); return; }
+  const input = document.getElementById("un-name");
+  const name = (input ? input.value : "").trim();
+  if (!/^[A-Za-z0-9_]{3,16}$/.test(name)) {
+    setAuthError("un", "3-16 characters: letters, numbers and underscores only (no spaces).");
+    return;
+  }
+  if (usernameExists(name, acct.id)) {
+    setAuthError("un", "That username is already taken on this device — pick another.");
+    return;
+  }
+  acct.username = name;
+  acct.name = name;                    // the in-game name IS the chosen username
+  acct.namedAt = Date.now();
+  db.accounts[acct.id] = acct;
+  saveAccounts(db);
+  setPending(null);
+  sfx("gem");
+  toast("Welcome, " + name + " — username set. Loading your harbour...");
+  enterProfile(acct);                  // reload: gate opens, gameplay + trading unlock
 }
+
 // Hand a profile over to the running game. Reloading guarantees every subsystem
 // (boards, cosmetics, terrain, save) re-initialises from that profile's data.
 function enterProfile(acct) {
@@ -2910,11 +2914,13 @@ function enterProfile(acct) {
   writeAuth({ mode: "account", current: a.id, at: Date.now() });
   reloadForProfile(a.name);
 }
-// Back to anonymous play (log out / switch account). No reload needed when nothing
-// was signed in, but a reload keeps every subsystem consistent with the new owner.
-function enterSolo() {
+// Sign out: clear the session and reload, which puts the mandatory gate straight back
+// up. An in-flight trade is cancelled first.
+function signOut() {
+  try { if (NET && NET.trade) netSignal("trade-cancel", { tradeId: NET.trade.id }); } catch (e) {}
+  try { netLeave(); } catch (e) {}
   switchingProfile = true;
-  writeAuth({ mode: SOLO, current: null, at: Date.now() });
+  writeAuth({ mode: null, current: null, at: Date.now() });
   location.reload();
 }
 function reloadForProfile(label) {
@@ -2935,7 +2941,7 @@ function reloadForProfile(label) {
 }
 function logoutToSolo() {
   syncProfile();             // the account keeps its progress; we just step out of it
-  enterSolo();
+  signOut();
 }
 // --- Google Identity Services -------------------------------------------------
 function decodeJwt(token) {
@@ -2973,18 +2979,21 @@ function initGoogle() {
   googleStarting = true;
   loadGoogleScript().then(() => {
     if (!window.google || !google.accounts || !google.accounts.id) throw new Error("gis unavailable");
-    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onGoogleCredential, auto_select: false });
+    // auto_select lets a returning player go straight through without a click: GIS
+    // hands us the credential if the browser already has a Google session.
+    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onGoogleCredential, auto_select: true });
     slot.textContent = "";
     google.accounts.id.renderButton(slot, {
       theme: "filled_black", size: "large", shape: "pill", text: "signin_with", width: 320
     });
     googleReady = true;
+    if (GATE_LOCKED) setTimeout(() => promptGoogle(), 400);   // gate is up: ask Google now
   }).catch(() => {
     googleStarting = false;
     slot.textContent = "";
     const err = document.createElement("div");
     err.className = "auth-err";
-    err.textContent = "Google Identity Services could not load — check your connection, or use a local account.";
+    err.textContent = "Google Identity Services could not load — sign-in requires Google, so retry once your connection is back.";
     slot.appendChild(err);
   });
 }
@@ -2992,104 +3001,118 @@ function initGoogle() {
 // The token is decoded locally and its claims trusted as-is — there is no server
 // here to verify Google's signature, which is fine for gating a local game profile
 // but would NOT be acceptable for anything that needs a verified identity.
+// Called by Google Identity Services; the real work lives in googleSignIn so the
+// identity step and the "which screen next" step stay separable.
 function onGoogleCredential(resp) {
   const claims = decodeJwt(resp && resp.credential);
-  if (!claims || !claims.sub) { setAuthError("si", "Google returned an unreadable token."); return; }
+  if (!claims || !claims.sub) { setAuthError("un", "Google returned an unreadable token. Try again."); return; }
+  googleSignIn(claims);
+}
+function googleSignIn(claims) {
   const db = loadAccounts();
   const id = "google:" + claims.sub;
   let acct = db.accounts[id];
   if (!acct) {
     acct = db.accounts[id] = {
-      id, provider: "google", name: claims.name || claims.email || "Captain",
+      id, provider: "google", username: null,
+      name: claims.name || claims.email || "Captain",
       user: claims.email || null, email: claims.email || null, avatar: claims.picture || null,
-      salt: null, hash: null, createdAt: Date.now(), lastSeen: Date.now(),
+      createdAt: Date.now(), lastSeen: Date.now(),
       stats: statsDefaults(), save: null, boards: null
     };
     db.order = (db.order || []).concat(id);
   } else {
-    acct.name = claims.name || acct.name;
+    // keep the username they chose; Google only refreshes identity details
+    acct.name = acct.username || acct.name;
     acct.email = claims.email || acct.email;
     acct.avatar = claims.picture || acct.avatar;
   }
   saveAccounts(db);
-  enterProfile(acct);
+  if (!acct.username) {
+    // first time with this Google account: the gate stays locked until they name themselves
+    setPending(acct.id);
+    gateLock(true);
+    showUsernamePane(acct);
+    return;
+  }
+  setPending(null);
+  enterProfile(acct);                  // returning player: straight in
 }
 // --- auth UI -----------------------------------------------------------------
 function setAuthError(which, msg) {
-  const el2 = document.getElementById(which === "su" ? "su-err" : "si-err");
+  const el2 = document.getElementById(which === "un" ? "un-err" : "google-note");
   if (el2) el2.textContent = msg || "";
 }
-function showAuthPane(name) {
-  document.querySelectorAll(".atab").forEach(t => t.classList.toggle("on", t.dataset.pane === name));
-  document.getElementById("pane-signin").hidden = name !== "signin";
-  document.getElementById("pane-signup").hidden = name !== "signup";
-  setAuthError("si", ""); setAuthError("su", "");
-}
-function renderKnownAccounts() {
-  const host = document.getElementById("known-accounts");
-  if (!host) return;
-  const db = loadAccounts();
-  const list = (db.order || []).map(id => db.accounts[id]).filter(Boolean).slice(0, 4);
-  host.textContent = "";
-  if (!list.length) { host.hidden = true; return; }
-  host.hidden = false;
-  const label = el("div", "known-label", "Accounts on this device");
-  host.appendChild(label);
-  list.forEach(a => {
-    const b = el("button", "known-btn");
-    const av = el("span", "avatar sm");
-    paintAvatar(av, a);
-    b.appendChild(av);
-    const meta = el("span", "known-meta");
-    meta.appendChild(el("b", null, a.name));
-    meta.appendChild(el("span", null, (a.provider === "google" ? "Google" : "Local") +
-      " · best wave " + ((a.stats && a.stats.bestWave) || 0)));
-    b.appendChild(meta);
-    b.onclick = () => {
-      if (a.provider === "google") {
-        setAuthError("si", a.name + " uses Google — press “Sign in with Google”.");
-      } else {
-        showAuthPane("signin");
-        document.getElementById("si-user").value = a.user || "";
-        document.getElementById("si-pass").focus();
-        setAuthError("si", "Enter the password for " + a.name + ".");
-      }
-    };
-    host.appendChild(b);
-  });
-}
-// Signing in is opt-in. There is no login wall and no "guest account" to create: an
-// anonymous session ("solo") plays straight away, saving to this browser, and an
-// account can be added later from the profile chip.
-const SOLO = "solo";
 function openAuthModal() {
-  renderKnownAccounts();
   initGoogle();
   document.getElementById("auth").classList.remove("hidden");
+  promptGoogle();
 }
-function closeAuthModal() {
-  document.getElementById("auth").classList.add("hidden");
-  const e1 = document.getElementById("si-err"), e2 = document.getElementById("su-err");
-  if (e1) e1.textContent = "";
-  if (e2) e2.textContent = "";
+/* ------------------------- mandatory sign-in gate --------------------------- */
+// No guest mode and no password login: an authenticated Google account is the only way
+// in. GATE_LOCKED is the single switch every input path checks, and it stays on even
+// after Google sign-in until an in-game username has been chosen.
+const SOLO = "solo";       // legacy marker from an older build; never written now
+let GATE_LOCKED = false;
+
+function googleNote() {
+  const note = document.getElementById("google-note");
+  if (!note) return;
+  note.textContent = googleReady
+    ? "Google prompt not showing? Use the button above — it runs the same Google sign-in."
+    : "Google Identity Services could not load here (client ID, network or browser). Sign-in " +
+      "requires Google, so try again in a normal window without tracking blockers.";
 }
+// Ask Google straight away (One Tap). Retries briefly while the GIS script loads.
+function promptGoogle(tries) {
+  tries = tries || 0;
+  const gi = window.google && window.google.accounts && google.accounts.id;
+  if (!gi) {
+    if (tries < 6) return setTimeout(() => promptGoogle(tries + 1), 700);
+    return googleNote();
+  }
+  try { google.accounts.id.prompt(); } catch (e) { /* One Tap is optional */ }
+  setTimeout(googleNote, 1500);
+}
+function gateLock(on) {
+  GATE_LOCKED = !!on;
+  if (G) {
+    G.paused = !!on;
+    if (on) { G.build = null; G.sel = null; G.moving = null; }
+  }
+  const card = document.getElementById("auth");
+  if (card) card.classList.toggle("hidden", !on);
+  const chip = document.getElementById("chip-name");
+  if (chip) chip.textContent = on ? "Sign in required" : (activeAccount() || {}).name || "Captain";
+  if (on) {
+    const e1 = document.getElementById("si-err"), e2 = document.getElementById("su-err");
+    if (e1) e1.textContent = "";
+    if (e2) e2.textContent = "";
+  }
+}
+// The gatekeeper: runs on load, on sign-out and after a profile switch.
 function authGate() {
-  const auth = readAuth();
-  if (!auth || !auth.mode) writeAuth({ mode: SOLO, current: null, at: Date.now() });
-  closeAuthModal();          // never block play
-  return activeAccount();
+  const acct = activeAccount();
+  if (acct) { setPending(null); gateLock(false); return acct; }
+  gateLock(true);
+  // mid-onboarding after a reload?  Resume it (or finish it if the name was chosen).
+  const pend = readPending();
+  const p = pend && loadAccounts().accounts[pend.id];
+  if (p && p.username) { enterProfile(p); return null; }
+  if (p) showUsernamePane(p);
+  return null;
 }
 // --- profile dashboard -------------------------------------------------------
 function renderProfile() {
   const acct = activeAccount();
   paintAvatar(document.getElementById("chip-avatar"), acct);
-  document.getElementById("chip-name").textContent = acct ? acct.name : "No account";
+  document.getElementById("chip-name").textContent = acct ? displayName(acct) : "Sign in required";
   paintAvatar(document.getElementById("pf-avatar"), acct);
-  document.getElementById("pf-name").textContent = acct ? acct.name : "Captain";
+  document.getElementById("pf-name").textContent = acct ? displayName(acct) : "Captain";
   document.getElementById("pf-id").textContent = acct
-    ? (acct.provider === "google" ? "Google account" : "Local account") +
+    ? "Google account" +
       " · " + (acct.email || acct.user || acct.id) + " · id " + acct.id
-    : "no account — you're playing straight away; progress and collectibles are saved in this browser";
+    : "signed out — sign in to play. Guest play has been removed, and the harbour stays locked until an account is active.";
   // account buttons only make sense when there is an account to act on
   const signinBtn = document.getElementById("pf-signin");
   const logoutBtn = document.getElementById("pf-logout");
@@ -3101,12 +3124,10 @@ function renderProfile() {
   const badges = document.getElementById("pf-badges");
   badges.textContent = "";
   const addBadge = (txt, cls) => badges.appendChild(el("span", "pf-badge" + (cls ? " " + cls : ""), txt));
-  addBadge(acct ? (acct.provider === "google" ? "🔐 Google sign-in" : "🔐 Local account")
-                : "🎮 No account needed");
+  addBadge(acct ? "🔐 Google sign-in" : "🔒 Google sign-in required");
   addBadge("💎 " + G.gems + " gems banked", "g");
   if (acct) addBadge("🗓 joined " + new Date(acct.createdAt).toLocaleDateString());
   if (acct && acct.lastSeen) addBadge("⏱ seen " + fmtWhen(acct.lastSeen));
-  if (acct && !acct.hash && acct.provider === "local") addBadge("no password set");
 
   const st = Object.assign(statsDefaults(), (acct && acct.stats) || {});
   const curCleared = Math.max(0, G.wave - (G.waveActive ? 1 : 0));
@@ -3220,8 +3241,8 @@ function netJoin() {
   NET.joining = true;
   const me = activeAccount();
   netPost("/api/join", {
-    name: me ? me.name : "Captain",
-    prof: me ? me.id : "solo",
+    name: displayName(me),
+    prof: me ? me.id : "none",
     worth: worthTotal()
   }).then(res => {
     if (!res || !res.id) throw new Error((res && res.error) || "hub refused the session");
@@ -3245,7 +3266,7 @@ function netJoin() {
 function netPingNow() {
   if (!NET.on) return;
   const me = activeAccount();
-  netPost("/api/ping", { id: NET.id, token: NET.token, name: me ? me.name : "Captain", worth: worthTotal() })
+  netPost("/api/ping", { id: NET.id, token: NET.token, name: displayName(me), worth: worthTotal() })
     .then(r => {
       if (!r || !r.ok) { netRejoin(); return; }
       NET.players = r.players || NET.players;
@@ -4886,6 +4907,7 @@ cv.addEventListener("mouseleave", () => { G.hover.x = -999; G.hover.y = -999; })
 cv.addEventListener("contextmenu", ev => { ev.preventDefault(); G.build = null; G.sel = null; G.moving = null; ui(); });
 function canvasClick(p, button) {
   if (button === 2) return;
+  if (GATE_LOCKED) return;            // no gameplay input until an account is signed in
   const b = hitButton(p);
   if (b) {
     if (b === "start") startWave();
@@ -4988,38 +5010,14 @@ document.getElementById("board-x").onclick = () => showBoard(false);
 document.getElementById("inv-close").onclick = () => showInv(false);
 document.getElementById("inv-x").onclick = () => showInv(false);
 /* ---- auth + profile wiring ---- */
-document.querySelectorAll(".atab").forEach(t => {
-  t.onclick = () => showAuthPane(t.dataset.pane);
+// Google is the only way in: no password forms, no guest button.
+document.getElementById("un-go").onclick = () => confirmUsername();
+document.getElementById("un-name").addEventListener("keydown", ev => {
+  if (ev.key === "Enter") confirmUsername();
 });
-document.getElementById("si-go").onclick = async () => {
-  const u = document.getElementById("si-user").value.trim();
-  const p = document.getElementById("si-pass").value;
-  setAuthError("si", "");
-  if (!u || !p) { setAuthError("si", "Enter your username and password."); return; }
-  try {
-    const acct = await signInLocal(u, p);
-    enterProfile(acct);
-  } catch (e) { setAuthError("si", e.message || "Could not sign in."); }
-};
-document.getElementById("su-go").onclick = async () => {
-  const name = document.getElementById("su-name").value.trim();
-  const u = document.getElementById("su-user").value.trim();
-  const p = document.getElementById("su-pass").value;
-  const p2 = document.getElementById("su-pass2").value;
-  setAuthError("su", "");
-  if (u.length < 3) { setAuthError("su", "Username must be at least 3 characters."); return; }
-  if (p.length < 6) { setAuthError("su", "Password must be at least 6 characters."); return; }
-  if (p !== p2) { setAuthError("su", "Passwords do not match."); return; }
-  try {
-    const acct = await createLocalAccount(name || u, u, p);
-    enterProfile(acct);
-  } catch (e) { setAuthError("su", e.message || "Could not create the account."); }
-};
-[["si-user", "si-go"], ["si-pass", "si-go"], ["su-pass2", "su-go"]].forEach(([field, btn]) => {
-  const el2 = document.getElementById(field);
-  if (el2) el2.addEventListener("keydown", ev => { if (ev.key === "Enter") document.getElementById(btn).click(); });
-});
-document.getElementById("auth-x").onclick = () => closeAuthModal();
+// The gate cannot be dismissed: this is the only way forward, and it exists so the
+// exact requested wording is visible even though Google draws its own button.
+document.getElementById("google-play").onclick = () => { audioInit(); promptGoogle(); };
 document.getElementById("top-profile").onclick = () => toggleOverlay("profile");
 document.getElementById("top-trade").onclick = () => toggleOverlay("trade");
 document.getElementById("trade-x").onclick = () => showTrade(false);
@@ -5049,7 +5047,7 @@ document.getElementById("pf-logout").onclick = () =>
 document.getElementById("pf-signin").onclick = () => { showProfile(false); openAuthModal(); };
 document.getElementById("pf-switch").onclick = () => {
   syncProfile();                 // keep this account's progress, then step out of it
-  enterSolo();
+  signOut();
 };
 document.getElementById("inv-reset").onclick = () => armConfirm(document.getElementById("inv-reset"),
   "Tap again to reset profile", () => {
@@ -5092,6 +5090,7 @@ document.addEventListener("visibilitychange", () => {
 // belt-and-braces autosave so nothing is ever lost mid-run
 setInterval(() => { try { if (!G.over) saveGame(); } catch (e) {} }, 5000);
 window.addEventListener("keydown", ev => {
+  if (GATE_LOCKED) return;            // shortcuts, waves and selling all wait for sign-in
   const tag = (ev.target.tagName || "").toLowerCase();
   if (tag === "select" || tag === "input") return;
   const n = parseInt(ev.key, 10);
@@ -5176,7 +5175,7 @@ try {
 }
 authGate();            // never blocks: this only makes sure a session exists
 renderProfile();
-netJoin();             // announce this browser to the hub (no-op when offline)
+if (activeAccount()) netJoin();   // trading needs a signed-in account too
 // Read-only inspection hook (used by the automated smoke test and the browser console).
 window.SeaSiege = Object.freeze({
   decodeJwt: decodeJwt,
