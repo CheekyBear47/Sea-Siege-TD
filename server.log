@@ -1,0 +1,469 @@
+==================================================================
+  SEA SIEGE TOWER DEFENSE
+==================================================================
+  serving : C:\Users\teddy\Desktop\Tower defense game
+  local   : http://localhost:8000/
+  lan     : http://<your-ip>:8000/
+  hub     : /api/events (SSE) - /api/join - /api/signal - /api/players
+[ngrok] using the authtoken stored in C:\Users\teddy\AppData\Local\ngrok\ngrok.yml
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "GET /api/events?id=414364c7badc0961&token=6c8935c04d075a42e2e0b2714db763c4 HTTP/1.1" 403 -
+[ngrok] note: could not write the token (PyngrokNgrokError) - continuing with the agent's existing configuration
+  · 127.0.0.1 - "GET /api/events?id=49f836da42c233b1&token=87128e73de147cfc9c023ee01ed36d2b HTTP/1.1" 403 -
+t=2026-11-02T17:34:52+1000 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+ERROR:  authentication failed: Your account is limited to 3 simultaneous ngrok agent sessions.
+ERROR:  Run multiple endpoints at the same time from a single agent by defining them in your agent configuration file and running `ngrok start --all`.
+t=2026-11-02T17:34:52+1000 lvl=eror msg="failed to reconnect session" obj=tunnels.session err="authentication failed: Your account is limited to 3 simultaneous ngrok agent sessions.\nRun multiple endpoints at the same time from a single agent by defining them in your agent configuration file and running `ngrok start --all`.\nRead more about the agent configuration file: https://ngrok.com/docs/gateway/agent/config/ \nYou can view your current agent sessions in the dashboard: https://dashboard.ngrok.com/agents. Upgrade to a paid plan to remove this limit:\nhttps://dashboard.ngrok.com/billing/choose-a-plan\r\n\r\nERR_NGROK_108\r\n"
+ERROR:  Read more about the agent configuration file: https://ngrok.com/docs/gateway/agent/config/ 
+ERROR:  You can view your current agent sessions in the dashboard: https://dashboard.ngrok.com/agents. Upgrade to a paid plan to remove this limit:
+ERROR:  https://dashboard.ngrok.com/billing/choose-a-plan
+ERROR:  
+ERROR:  ERR_NGROK_108
+ERROR:  https://ngrok.com/docs/errors/err_ngrok_108
+ERROR:  
+t=2026-11-02T17:34:52+1000 lvl=eror msg="session closing" obj=tunnels.session err="authentication failed: Your account is limited to 3 simultaneous ngrok agent sessions.\nRun multiple endpoints at the same time from a single agent by defining them in your agent configuration file and running `ngrok start --all`.\nRead more about the agent configuration file: https://ngrok.com/docs/gateway/agent/config/ \nYou can view your current agent sessions in the dashboard: https://dashboard.ngrok.com/agents. Upgrade to a paid plan to remove this limit:\nhttps://dashboard.ngrok.com/billing/choose-a-plan\r\n\r\nERR_NGROK_108\r\n"
+t=2026-11-02T17:34:52+1000 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
+t=2026-11-02T17:34:52+1000 lvl=crit msg="command failed" err="authentication failed: Your account is limited to 3 simultaneous ngrok agent sessions.\nRun multiple endpoints at the same time from a single agent by defining them in your agent configuration file and running `ngrok start --all`.\nRead more about the agent configuration file: https://ngrok.com/docs/gateway/agent/config/ \nYou can view your current agent sessions in the dashboard: https://dashboard.ngrok.com/agents. Upgrade to a paid plan to remove this limit:\nhttps://dashboard.ngrok.com/billing/choose-a-plan\r\n\r\nERR_NGROK_108\r\n"
+[ngrok] tunnel failed: The ngrok process errored on start: authentication failed: Your account is limited to 3 simultaneous ngrok agent sessions.\nRun multiple endpoints at the same time from a single agent by defining them in your agent configuration file and running `ngrok start --all`.\nRead more about the agent configuration file: https://ngrok.com/docs/gateway/agent/config/ \nYou can view your current agent sessions in the dashboard: https://dashboard.ngrok.com/agents. Upgrade to a paid plan to remove this limit:\nhttps://dashboard.ngrok.com/billing/choose-a-plan\r\n\r\nERR_NGROK_108\r\n.
+[ngrok] continuing with local hosting only.
+
+  PUBLIC  : (no tunnel - start the server with a token for remote play)
+==================================================================
+  Ctrl+C to stop.
+
+  · 127.0.0.1 - "GET /api/events?id=49f836da42c233b1&token=87128e73de147cfc9c023ee01ed36d2b HTTP/1.1" 403 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "GET /api/events?id=414364c7badc0961&token=6c8935c04d075a42e2e0b2714db763c4 HTTP/1.1" 403 -
+  · 127.0.0.1 - "GET /api/health HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=49f836da42c233b1&token=87128e73de147cfc9c023ee01ed36d2b HTTP/1.1" 403 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 403 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "GET /api/events?id=49f836da42c233b1&token=87128e73de147cfc9c023ee01ed36d2b HTTP/1.1" 403 -
+  + online: Captain (local) worth 40 - 1 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 403 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=465c664b9583c158&token=edca975f358aecb7b5364592b71331bd HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  + online: Captain (remote) worth 50 - 2 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=fbec45ff1a22bea7&token=1e5a8a911ce7cfd615c3b90b447ac96b HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 403 -
+  · 127.0.0.1 - "GET /api/events?id=355e894535b7a8e9&token=c92f8cf934de1d95eb3d3da0e5618c96 HTTP/1.1" 403 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  + online: Captain (remote) worth 40 - 3 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=01ff1119dbd3d8e8&token=cdb3fbc01d57e4203b5dd06bdfb6f321 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=01ff1119dbd3d8e8&token=cdb3fbc01d57e4203b5dd06bdfb6f321 HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=465c664b9583c158&token=edca975f358aecb7b5364592b71331bd HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=fbec45ff1a22bea7&token=1e5a8a911ce7cfd615c3b90b447ac96b HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=01ff1119dbd3d8e8&token=cdb3fbc01d57e4203b5dd06bdfb6f321 HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=465c664b9583c158&token=edca975f358aecb7b5364592b71331bd HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=fbec45ff1a22bea7&token=1e5a8a911ce7cfd615c3b90b447ac96b HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  - offline: Captain
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=01ff1119dbd3d8e8&token=cdb3fbc01d57e4203b5dd06bdfb6f321 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/health HTTP/1.1" 200 -
+  - timed out: Captain
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=01ff1119dbd3d8e8&token=cdb3fbc01d57e4203b5dd06bdfb6f321 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=01ff1119dbd3d8e8&token=cdb3fbc01d57e4203b5dd06bdfb6f321 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  - offline: Captain
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  + online: Captain (remote) worth 40 - 1 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=48fe2a51a24c7b82&token=72316e488ca09cd1ee02b411f8bd84e4 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  - offline: Captain
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  + online: Captain (remote) worth 40 - 1 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=7662df18631da06f&token=6c9eeef9899c55eddd8425493f560b70 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  - offline: Captain
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  + online: Teddy Hughes (remote) worth 50 - 1 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=7afc39b4390f0b5f&token=c1476f40d7885b8db7d8b4431fabb857 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=7afc39b4390f0b5f&token=c1476f40d7885b8db7d8b4431fabb857 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=7afc39b4390f0b5f&token=c1476f40d7885b8db7d8b4431fabb857 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=7afc39b4390f0b5f&token=c1476f40d7885b8db7d8b4431fabb857 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=7afc39b4390f0b5f&token=c1476f40d7885b8db7d8b4431fabb857 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  + online: Captain (local) worth 50 - 2 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=4b339b6b7edf70b3&token=0c3364e196a75fb7a6ef49e483f4541b HTTP/1.1" 200 -
+  · 127.0.0.1 - code 404, message File not found
+  · 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=4b339b6b7edf70b3&token=0c3364e196a75fb7a6ef49e483f4541b HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=7afc39b4390f0b5f&token=c1476f40d7885b8db7d8b4431fabb857 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=4b339b6b7edf70b3&token=0c3364e196a75fb7a6ef49e483f4541b HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=7afc39b4390f0b5f&token=c1476f40d7885b8db7d8b4431fabb857 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  - offline: Captain
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  + online: Captain (local) worth 50 - 2 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=6587c0d7b051f191&token=d5a01573d834012920feada50525728f HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  - offline: Captain
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
+  + online: Captain (local) worth 50 - 2 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=a75e04e9164eab8f&token=f73e73794802c47fc1ff552e3e97de1b HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=a75e04e9164eab8f&token=f73e73794802c47fc1ff552e3e97de1b HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  - offline: Captain
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
+  + online: Captain (local) worth 50 - 2 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=680a343b207da769&token=a93b84d2e94dbd766c3c16c0970d59aa HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  - offline: Captain
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
+  + online: Captain (local) worth 50 - 2 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=e828821f4c684b79&token=f9e45147deed0eb3c23f458e7811aa6f HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  - offline: Captain
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
+  + online: Captain (local) worth 50 - 2 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=f1644d3586235358&token=23bc300c1458321e97e2c02c844327ef HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  - offline: Captain
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
+  + online: Captain (local) worth 50 - 2 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=da87f253b846182b&token=5b827249cef16d3ebb304973ca488f94 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  - offline: Captain
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
+  + online: Captain (local) worth 50 - 2 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=72acbef28691e8cb&token=062905b50e3be0ef3bc465f134f73274 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  - offline: Teddy Hughes
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  + online: Teddy Hughes (remote) worth 50 - 2 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=bf117e850a6e051f&token=4403b952347ac3afac1d4aa14a984dce HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=72acbef28691e8cb&token=062905b50e3be0ef3bc465f134f73274 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=bf117e850a6e051f&token=4403b952347ac3afac1d4aa14a984dce HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=72acbef28691e8cb&token=062905b50e3be0ef3bc465f134f73274 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=bf117e850a6e051f&token=4403b952347ac3afac1d4aa14a984dce HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=bf117e850a6e051f&token=4403b952347ac3afac1d4aa14a984dce HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=72acbef28691e8cb&token=062905b50e3be0ef3bc465f134f73274 HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=bf117e850a6e051f&token=4403b952347ac3afac1d4aa14a984dce HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  - timed out: Captain
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=bf117e850a6e051f&token=4403b952347ac3afac1d4aa14a984dce HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  - offline: Teddy Hughes
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  + online: Captain (local) worth 50 - 1 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=3da85511cadd1d9c&token=2bfdc669246646916b0724486240cb0e HTTP/1.1" 200 -
+  · 127.0.0.1 - code 404, message File not found
+  · 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - code 404, message File not found
+  · 127.0.0.1 - "GET /seed-none HTTP/1.1" 404 -
+  - offline: Captain
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  + online: Captain (local) worth 11,550 - 1 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=5b74a6aea191032c&token=d8d07f2ceac3c328411b33b3d692470d HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=5b74a6aea191032c&token=d8d07f2ceac3c328411b33b3d692470d HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=5b74a6aea191032c&token=d8d07f2ceac3c328411b33b3d692470d HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=5b74a6aea191032c&token=d8d07f2ceac3c328411b33b3d692470d HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=5b74a6aea191032c&token=d8d07f2ceac3c328411b33b3d692470d HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  - timed out: Captain
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  + online: Teddy Hughes (remote) worth 50 - 1 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=0fd95e0c8c57f7d3&token=c5d5d49e421e33880d13e54a40a6319b HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=0fd95e0c8c57f7d3&token=c5d5d49e421e33880d13e54a40a6319b HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=0fd95e0c8c57f7d3&token=c5d5d49e421e33880d13e54a40a6319b HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  + online: Captain (remote) worth 50 - 2 player(s)
+  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/events?id=8441a0419ba66df4&token=a4fceda0d999c63ce189d97f42ddf0a0 HTTP/1.1" 200 -
+  · 127.0.0.1 - code 404, message File not found
+  · 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/signal HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  ~ trade-accept from Captain (trade 080a74f442dc)
+  · 127.0.0.1 - "POST /api/signal HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - code 404, message File not found
+  · 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  ~ trade-offer from Teddy Hughes (trade 080a74f442dc) items=['wrap:bare'] locked=False
+  · 127.0.0.1 - "POST /api/signal HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  - offline: Teddy Hughes
+  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
+  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
+  - timed out: Captain
+  · 127.0.0.1 - "GET /api/health HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -

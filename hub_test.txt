@@ -1,0 +1,30 @@
+hub: http://localhost:8000
+  ok   hub answers /api/health  <- {"ok": true, "players": 1, "trades": 1}
+  ok   two players joined
+  ok   join returns a session token
+  ok   A got hello
+  ok   B got hello
+  FAIL presence lists both players  <- ['TestAlpha']
+  FAIL presence carries worth + host  <- {}
+  ok   A's trade request accepted by hub  <- {"ok": true, "tradeId": "368b9271487b", "peer": {"id": "45f1ffde9fd10475", "name": "TestBravo", "worth": 340}}
+  ok   hub returned a trade id
+  ok   B received the invitation  <- {"kind": "trade-invite", "tradeId": "368b9271487b", "from": {"id": "e719fadaa1d7ef43", "name": "TestAlpha", "worth": 1200}}
+  ok   A was told B accepted  <- {"kind": "trade-open", "tradeId": "368b9271487b", "peer": {"id": "45f1ffde9fd10475", "name": "TestBravo", "worth": 340}}
+  ok   B live-previews A's unlocked offer  <- {"kind": "trade-offer", "tradeId": "368b9271487b", "from": "e719fadaa1d7ef43", "items": ["env:volcanic"], "worth": 1200, "locked": false}
+  ok   confirm refused while the offer is unlocked  <- {"ok": false, "error": "lock your offer first"}
+  ok   each side sees the other's locked offer
+  ok   a locked offer cannot be changed  <- {"ok": false, "error": "your offer is locked - unlock it first"}
+  ok   A confirm accepted, not both yet  <- {"ok": true, "both": false}
+  ok   B sees that A confirmed
+  ok   B confirm completes the trade  <- {"ok": true, "both": true}
+  ok   A got an execute with matching sides  <- {"kind": "trade-execute", "tradeId": "368b9271487b", "mine": ["env:volcanic"], "theirs": ["fx:ember", "banner:kraken"]}
+  ok   B got the mirrored execute  <- {"kind": "trade-execute", "tradeId": "368b9271487b", "mine": ["fx:ember", "banner:kraken"], "theirs": ["env:volcanic"]}
+  ok   trade cleared from the hub  <- {"ok": false, "error": "no such trade"}
+  ok   decline closes the trade
+  ok   worth updates propagate through presence  <- [9999, 340]
+  ok   a bad session token is refused  <- {"ok": false, "error": "unknown session"}
+  ok   both players left cleanly  <- []
+
+2 check(s) FAILED:
+  - presence lists both players ['TestAlpha']
+  - presence carries worth + host {}
