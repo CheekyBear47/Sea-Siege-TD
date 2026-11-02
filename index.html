@@ -342,6 +342,19 @@
     background:rgba(143,214,255,.06);border:1px solid var(--stroke);font-size:10.5px;color:var(--dim);
     line-height:1.45}
   .who .avatar.sm{width:26px;height:26px;font-size:11px}
+  /* the two sign-in methods: tabs above ONE visible pane, never stacked */
+  /* A plain `display:` rule on an element beats the UA's [hidden] rule, which silently
+     kept the confirm-password field (and the GIS slot) on screen while "hidden". */
+  [hidden]{display:none !important}
+  .auth-tabs{display:flex;gap:6px;margin-bottom:14px}
+  .auth-tabs.sub{margin:2px 0 12px}
+  .atab{
+    flex:1;padding:9px;border-radius:10px;cursor:pointer;font:inherit;font-size:10.5px;font-weight:700;
+    background:rgba(30,48,74,.45);border:1px solid transparent;color:#bcd3ea;
+  }
+  .atab.on{background:linear-gradient(150deg,#2f6ea8,#14344f);color:#eaf6ff;border-color:rgba(143,214,255,.55)}
+  #pane-local .auth-note{text-align:left;margin:8px 0 0}
+  #lo-err{color:#ffb3b3;min-height:15px}
   #un-err{min-height:0;margin-bottom:8px}
   #un-err:empty{min-height:0}
   #pane-username .btn{margin-top:4px}
@@ -477,9 +490,36 @@
       <span class="brand-text">Sea Siege<small>Tower Defense</small></span></div>
     <p class="auth-lead"><b>Sign in to play.</b> Guest play has been removed — the harbour, armoury,
     trading and crates all require an account.</p>
-    <button class="btn primary big" id="google-play">Sign In with Google to Play</button>
-    <div id="gsi-slot"></div>
-    <div class="auth-note" id="google-note"></div>
+
+    <div class="auth-tabs" id="auth-tabs">
+      <button class="atab on" data-pane="google">Sign In with Google</button>
+      <button class="atab" data-pane="local">Username &amp; Password</button>
+    </div>
+
+    <!-- Option A: Google OAuth -->
+    <div class="auth-pane" id="pane-google">
+      <button class="btn primary big" id="google-play">Sign In with Google to Play</button>
+      <div id="gsi-slot"></div>
+      <div class="auth-note" id="google-note"></div>
+    </div>
+
+    <!-- Option B: username + password, checked by the game server -->
+    <div class="auth-pane" id="pane-local" hidden>
+      <div class="auth-tabs sub" id="local-tabs">
+        <button class="atab on" data-lmode="signin">Sign in</button>
+        <button class="atab" data-lmode="register">Create account</button>
+      </div>
+      <label>Username
+        <input id="lo-user" maxlength="16" autocomplete="username" spellcheck="false" placeholder="Captain" />
+      </label>
+      <label>Password<input id="lo-pass" type="password" autocomplete="current-password" /></label>
+      <label id="lo-pass2-wrap" hidden>Confirm password
+        <input id="lo-pass2" type="password" autocomplete="new-password" /></label>
+      <div class="auth-err" id="lo-err"></div>
+      <button class="btn primary" id="lo-go">Sign in</button>
+      <p class="auth-note">Kept on the game server, so the same username and password open the same
+      profile — with your gems, collectibles and stats — on any device that can reach it.</p>
+    </div>
 
     <!-- First-time onboarding: shown after Google sign-in until a username exists -->
     <div class="auth-pane" id="pane-username" hidden>
@@ -494,8 +534,9 @@
     </div>
 
     <div class="auth-foot">
-      <span class="auth-note">Sign-in is handled entirely by Google — this game never sees or stores your
-      Google password. Your progress, gems and collectibles are saved against your Google account.</span>
+      <span class="auth-note">Google sign-in is handled entirely by Google — this game never sees or stores
+      your Google password. Username accounts are checked by the game server, which stores only a salted
+      hash. Either way your progress, gems and collectibles follow your account to any device.</span>
     </div>
   </div>
 </div>
@@ -2725,12 +2766,16 @@ function render() {
 }
 
 /* ------------------------- accounts, auth & profiles ---------------------- */
-// Local-only accounts. Passwords are salted and stretched with PBKDF2 in the
-// browser and never leave this device — this gates a local profile, it is NOT a
-// server login. Google sign-in is real OAuth via Google Identity Services and
-// needs a Client ID whose origin list includes this page.
+// Accounts are owned by the game server (server.py -> accounts.json) and keyed by a
+// STABLE identity: the Google `sub` for OAuth players, `local:<username>` for
+// username/password players. The browser keeps a mirror of the signed-in account so
+// the game still loads if the server is briefly unreachable, plus a session token
+// that gets a returning player straight back in. Passwords never live in the
+// browser: they are sent to the server, salted and stretched there with PBKDF2
+// (120k rounds), and only the hash is kept.
 const ACCOUNTS_KEY = "seaSiege.accounts.v1";
 const AUTH_KEY = "seaSiege.auth.v1";
+const SESSION_KEY = "seaSiege.session.v1";
 // Google OAuth client ID for this game (Web application client). Its *Authorized
 // JavaScript origins* must list every origin the page is served from, e.g.
 // http://localhost:8000 and the ngrok host, or Google will refuse the sign-in.
@@ -2754,6 +2799,109 @@ function readAuth() {
   try { const raw = localStorage.getItem(AUTH_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
 }
 function writeAuth(v) { try { localStorage.setItem(AUTH_KEY, JSON.stringify(v)); } catch (e) {} }
+function readSession() {
+  try { const raw = localStorage.getItem(SESSION_KEY); return raw ? JSON.parse(raw) : null; }
+  catch (e) { return null; }
+}
+function writeSession(v) {
+  try {
+    if (v) localStorage.setItem(SESSION_KEY, JSON.stringify(v));
+    else localStorage.removeItem(SESSION_KEY);
+  } catch (e) {}
+}
+// --- server API ----------------------------------------------------------------
+// Every account call goes to the game server, which owns the accounts file and is
+// the only thing that decides who a player is. The token it returns is the session:
+// that is what carries a profile to another device and lets a returning player in
+// without signing in again.
+async function api(path, body, ms) {
+  const ctl = typeof AbortController === "function" ? new AbortController() : null;
+  const timer = ctl ? setTimeout(() => ctl.abort(), ms || 9000) : null;
+  try {
+    const res = await fetch(path, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body || {}), signal: ctl ? ctl.signal : undefined
+    });
+    let j = null;
+    try { j = await res.json(); } catch (e) { j = null; }
+    if (!j) throw new Error("the server sent an unreadable reply");
+    if (!res.ok || j.ok === false) throw new Error(j.error || ("the server said " + res.status));
+    return j;
+  } catch (e) {
+    if (e && e.name === "AbortError") throw new Error("the server did not answer in time");
+    throw e;
+  } finally { if (timer) clearTimeout(timer); }
+}
+function serverDown(e) {
+  return /Failed to fetch|NetworkError|did not answer|unreadable reply|Load failed|network/i
+    .test(String((e && e.message) || ""));
+}
+// Adopt a server reply: mirror the account locally and remember the session token.
+function adoptSession(j) {
+  const acct = Object.assign({}, j.account);
+  writeSession({ token: j.token, id: acct.id, at: Date.now() });
+  const db = loadAccounts();
+  db.accounts[acct.id] = acct;
+  db.order = db.order || [];
+  if (db.order.indexOf(acct.id) < 0) db.order.push(acct.id);
+  saveAccounts(db);
+  return acct;
+}
+// Push the live profile to the server, debounced; localStorage is the offline mirror.
+let pushTimer = null;
+function queuePush() {
+  const sess = readSession();
+  if (!sess || !sess.token) return;
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(pushProfile, 5000);
+}
+// Built from the LIVE game state every time. An earlier version sent the mirror's
+// snapshot, which was captured at boot - so a run played afterwards synced as null.
+function profilePayload() {
+  const auth = readAuth();
+  const db = loadAccounts();
+  const a = auth && auth.mode === "account" ? db.accounts[auth.current] : null;
+  if (a) {
+    a.save = readSave();
+    a.boards = loadBoard();
+    a.stats = Object.assign(statsDefaults(), a.stats || {});
+    a.lastSeen = Date.now();
+    saveAccounts(db);
+  }
+  return {
+    save: a ? a.save : readSave(),
+    boards: a ? a.boards : loadBoard(),
+    stats: a ? a.stats : null,
+  };
+}
+function pushProfile() {
+  const sess = readSession();
+  const auth = readAuth();
+  if (!sess || !sess.token || !auth || auth.mode !== "account") return Promise.resolve();
+  return api("/api/account/save", Object.assign({ token: sess.token }, profilePayload()), 15000)
+    .catch(() => { /* offline: the local mirror still has everything */ });
+}
+// Push right now instead of waiting for the debounce (leaving, switching, hiding).
+function flushPush() {
+  if (pushTimer) { clearTimeout(pushTimer); pushTimer = null; }
+  return pushProfile();
+}
+// sendBeacon survives a reload or a tab close, where a fetch would be cancelled.
+function beaconProfile() {
+  const sess = readSession(), auth = readAuth();
+  if (!sess || !sess.token || !auth || auth.mode !== "account") return;
+  try {
+    const blob = new Blob([JSON.stringify(Object.assign({ token: sess.token }, profilePayload()))],
+      { type: "application/json" });
+    if (navigator.sendBeacon) navigator.sendBeacon("/api/account/save", blob);
+    else pushProfile();
+  } catch (e) { pushProfile(); }
+}
+// A slow heartbeat: whatever happens, the server copy is at most a minute behind.
+setInterval(() => { if (activeAccount()) pushProfile(); }, 20000);
+document.addEventListener("visibilitychange", () => { if (document.hidden) beaconProfile(); });
+// Last-ditch save on the way out - sendBeacon survives the page unloading.
+window.addEventListener("beforeunload", () => beaconProfile());
 function activeAccount() {
   const auth = readAuth();
   if (!auth || auth.mode !== "account") return null;
@@ -2822,6 +2970,7 @@ function syncProfile() {
   a.stats = Object.assign(statsDefaults(), a.stats || {});
   a.lastSeen = Date.now();
   saveAccounts(db);
+  queuePush();
 }
 function bumpAccountStats(patch) {
   if (switchingProfile) return;
@@ -2837,6 +2986,7 @@ function bumpAccountStats(patch) {
   }
   a.lastSeen = Date.now();
   saveAccounts(db);
+  queuePush();
 }
 // --- username onboarding -------------------------------------------------------
 // Shown once per Google account: sign-in identifies the player, this names them.
@@ -2856,35 +3006,31 @@ function showUsernamePane(acct) {
   const slot = document.getElementById("gsi-slot");
   if (slot) slot.hidden = true;
   if (pane) pane.hidden = false;
+  showAuthPane("username");                          // one owner of pane visibility
   setAuthError("un", "");
   const input = document.getElementById("un-name");
   if (input) { input.value = ""; input.focus(); }
 }
 function confirmUsername() {
   setAuthError("un", "");                  // never leave a stale error on a good submit
-  const pend = readPending();
-  const db = loadAccounts();
-  const acct = pend && db.accounts[pend.id];
-  if (!acct) { setAuthError("un", "Your Google session expired — sign in with Google again."); return; }
   const input = document.getElementById("un-name");
   const name = (input ? input.value : "").trim();
   if (!/^[A-Za-z0-9_]{3,16}$/.test(name)) {
     setAuthError("un", "3-16 characters: letters, numbers and underscores only (no spaces).");
     return;
   }
-  if (usernameExists(name, acct.id)) {
-    setAuthError("un", "That username is already taken on this device — pick another.");
-    return;
-  }
-  acct.username = name;
-  acct.name = name;                    // the in-game name IS the chosen username
-  acct.namedAt = Date.now();
-  db.accounts[acct.id] = acct;
-  saveAccounts(db);
-  setPending(null);
-  sfx("gem");
-  toast("Welcome, " + name + " — username set. Loading your harbour...");
-  enterProfile(acct);                  // reload: gate opens, gameplay + trading unlock
+  const sess = readSession();
+  if (!sess || !sess.token) { setAuthError("un", "Your session expired — sign in again."); return; }
+  const restore = armBusy(document.getElementById("un-go"), "Saving…");
+  api("/api/account/username", { token: sess.token, username: name })
+    .then(j => {
+      const acct = adoptSession(j);        // the server is the judge of "already taken"
+      setPending(null);
+      sfx("gem");
+      toast("Welcome, " + displayName(acct) + " — username set. Loading your harbour...");
+      enterProfile(acct);                  // reload: gate opens, gameplay + trading unlock
+    })
+    .catch(e => { restore(); setAuthError("un", e.message || "Could not save that username."); });
 }
 
 // Hand a profile over to the running game. Reloading guarantees every subsystem
@@ -2919,22 +3065,28 @@ function enterProfile(acct) {
 function signOut() {
   try { if (NET && NET.trade) netSignal("trade-cancel", { tradeId: NET.trade.id }); } catch (e) {}
   try { netLeave(); } catch (e) {}
+  const sess = readSession();
+  if (sess && sess.token) {
+    beaconProfile();                      // last chance to sync before the token dies
+    api("/api/account/logout", { token: sess.token }).catch(() => {});
+  }
   switchingProfile = true;
+  writeSession(null);
   writeAuth({ mode: null, current: null, at: Date.now() });
   location.reload();
+}
+// Put an account's run/boards into this browser's save slots (no reload).
+function applyProfileToStorage(acct) {
+  if (acct && acct.save) writeSave(Object.assign({}, acct.save, { owner: acct.id }));
+  else clearSave();
+  saveBoard((acct && acct.boards) || []);
 }
 function reloadForProfile(label) {
   switchingProfile = true;                 // stop the outgoing page from saving over the target profile
   if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
   const auth = readAuth();
-  if (auth && auth.mode === "account") {
-    const a = loadAccounts().accounts[auth.current];
-    if (a) {
-      if (a.save) { const blob = Object.assign({}, a.save, { owner: auth.current }); writeSave(blob); }
-      else clearSave();
-      saveBoard(a.boards || []);
-    }
-  }
+  if (auth && auth.mode === "account") applyProfileToStorage(loadAccounts().accounts[auth.current]);
+  beaconProfile();
   document.getElementById("auth").classList.add("hidden");
   toast("Loading " + label + "…");
   setTimeout(() => location.reload(), 220);
@@ -3004,48 +3156,121 @@ function initGoogle() {
 // Called by Google Identity Services; the real work lives in googleSignIn so the
 // identity step and the "which screen next" step stay separable.
 function onGoogleCredential(resp) {
-  const claims = decodeJwt(resp && resp.credential);
-  if (!claims || !claims.sub) { setAuthError("un", "Google returned an unreadable token. Try again."); return; }
-  googleSignIn(claims);
+  googleSignIn(resp && resp.credential);
 }
-function googleSignIn(claims) {
-  const db = loadAccounts();
-  const id = "google:" + claims.sub;
-  let acct = db.accounts[id];
-  if (!acct) {
-    acct = db.accounts[id] = {
-      id, provider: "google", username: null,
-      name: claims.name || claims.email || "Captain",
-      user: claims.email || null, email: claims.email || null, avatar: claims.picture || null,
-      createdAt: Date.now(), lastSeen: Date.now(),
-      stats: statsDefaults(), save: null, boards: null
-    };
-    db.order = (db.order || []).concat(id);
-  } else {
-    // keep the username they chose; Google only refreshes identity details
-    acct.name = acct.username || acct.name;
-    acct.email = claims.email || acct.email;
-    acct.avatar = claims.picture || acct.avatar;
-  }
-  saveAccounts(db);
-  if (!acct.username) {
-    // first time with this Google account: the gate stays locked until they name themselves
-    setPending(acct.id);
-    gateLock(true);
-    showUsernamePane(acct);
-    return;
-  }
-  setPending(null);
-  enterProfile(acct);                  // returning player: straight in
+// The ID token goes to the game server, which asks Google whether it is genuine and
+// keys the account on its `sub`. The same Google account therefore resolves to the
+// same record on every device, browser, origin and IP.
+function googleSignIn(credential) {
+  if (!credential) { setAuthError("google", "Google did not return a sign-in token."); return; }
+  setAuthError("google", "Checking that with Google…");
+  api("/api/account/google", { credential: credential }, 20000)
+    .then(j => {
+      const acct = adoptSession(j);
+      setAuthError("google", "");
+      if (j.needsUsername) {
+        // first time with this Google account: still locked until they pick a name
+        setPending(acct.id);
+        gateLock(true);
+        showUsernamePane(acct);
+        return;
+      }
+      setPending(null);
+      toast((j.created ? "Welcome aboard, " : "Welcome back, ") + displayName(acct) +
+            " — loading your harbour…");
+      enterProfile(acct);              // returning player: straight in, save and all
+    })
+    .catch(e => setAuthError("google", e.message || "Google sign-in failed."));
 }
 // --- auth UI -----------------------------------------------------------------
 function setAuthError(which, msg) {
-  const el2 = document.getElementById(which === "un" ? "un-err" : "google-note");
+  const id = which === "un" ? "un-err" : which === "lo" ? "lo-err" : "google-note";
+  const el2 = document.getElementById(id);
   if (el2) el2.textContent = msg || "";
+}
+// --- modal switching ---------------------------------------------------------
+// ONE function decides which pane is visible, so Google / username-password / the
+// username onboarding screen can never stack, half-hide or leave a dead button.
+let localMode = "signin";
+function showAuthPane(name) {
+  const panes = { google: "pane-google", local: "pane-local", username: "pane-username" };
+  for (const key of Object.keys(panes)) {
+    const el2 = document.getElementById(panes[key]);
+    if (el2) el2.hidden = key !== name;
+  }
+  const gbtn = document.getElementById("google-play");
+  if (gbtn) gbtn.hidden = name !== "google";
+  const slot = document.getElementById("gsi-slot");
+  if (slot) slot.hidden = name !== "google";
+  document.querySelectorAll("#auth-tabs .atab").forEach(t =>
+    t.classList.toggle("on", t.dataset.pane === name));
+  setAuthError("un", "");
+  setAuthError("lo", "");
+  if (name === "google") {
+    setAuthError("google", "");
+    initGoogle();
+    if (googleReady) googleNote();     // restore the hint, not a stale error
+  }
+  if (name === "local") setLocalMode(localMode);
+  if (name === "username") {
+    const input = document.getElementById("un-name");
+    if (input) { input.value = ""; input.focus(); }
+  }
+}
+function setLocalMode(mode) {
+  localMode = mode === "register" ? "register" : "signin";
+  document.querySelectorAll("#local-tabs .atab").forEach(t =>
+    t.classList.toggle("on", t.dataset.lmode === localMode));
+  const wrap = document.getElementById("lo-pass2-wrap");
+  if (wrap) wrap.hidden = localMode !== "register";
+  const go = document.getElementById("lo-go");
+  if (go) go.textContent = localMode === "register" ? "Create account" : "Sign in";
+  const pass = document.getElementById("lo-pass");
+  if (pass) pass.setAttribute("autocomplete", localMode === "register" ? "new-password" : "current-password");
+  setAuthError("lo", "");
+}
+// Disable a button for the duration of a request and hand back an undo.
+function armBusy(btn, label) {
+  if (!btn) return () => {};
+  const was = btn.textContent, off = btn.disabled;
+  btn.disabled = true;
+  if (label) btn.textContent = label;
+  return () => { btn.disabled = off; btn.textContent = was; };
+}
+// Option B: a username and password account, registered or checked by the server.
+function localSubmit() {
+  const val = id => { const e = document.getElementById(id); return e ? e.value : ""; };
+  const name = val("lo-user").trim();
+  const pass = val("lo-pass"), pass2 = val("lo-pass2");
+  setAuthError("lo", "");
+  if (localMode === "register") {
+    if (!/^[A-Za-z0-9_]{3,16}$/.test(name)) {
+      setAuthError("lo", "Username: 3-16 letters, numbers or underscores.");
+      return;
+    }
+    if (pass.length < 6) { setAuthError("lo", "Password must be at least 6 characters."); return; }
+    if (pass !== pass2) { setAuthError("lo", "Those passwords do not match."); return; }
+  } else if (!name || !pass) {
+    setAuthError("lo", "Enter your username and password.");
+    return;
+  }
+  const restore = armBusy(document.getElementById("lo-go"),
+                          localMode === "register" ? "Creating…" : "Signing in…");
+  api("/api/account/" + (localMode === "register" ? "register" : "login"),
+      { username: name, password: pass }, 20000)
+    .then(j => {
+      const acct = adoptSession(j);
+      setPending(null);
+      toast((localMode === "register" ? "Account created — welcome, " : "Welcome back, ") +
+            displayName(acct) + " — loading your harbour…");
+      enterProfile(acct);
+    })
+    .catch(e => { restore(); setAuthError("lo", e.message || "Could not sign in."); });
 }
 function openAuthModal() {
   initGoogle();
   document.getElementById("auth").classList.remove("hidden");
+  showAuthPane("google");
   promptGoogle();
 }
 /* ------------------------- mandatory sign-in gate --------------------------- */
@@ -3060,8 +3285,8 @@ function googleNote() {
   if (!note) return;
   note.textContent = googleReady
     ? "Google prompt not showing? Use the button above — it runs the same Google sign-in."
-    : "Google Identity Services could not load here (client ID, network or browser). Sign-in " +
-      "requires Google, so try again in a normal window without tracking blockers.";
+    : "Google Identity Services could not load here (client ID, network or browser), so use " +
+      "the Username & password tab instead — same accounts, same progress.";
 }
 // Ask Google straight away (One Tap). Retries briefly while the GIS script loads.
 function promptGoogle(tries) {
@@ -3084,23 +3309,41 @@ function gateLock(on) {
   if (card) card.classList.toggle("hidden", !on);
   const chip = document.getElementById("chip-name");
   if (chip) chip.textContent = on ? "Sign in required" : (activeAccount() || {}).name || "Captain";
-  if (on) {
-    const e1 = document.getElementById("si-err"), e2 = document.getElementById("su-err");
-    if (e1) e1.textContent = "";
-    if (e2) e2.textContent = "";
-  }
+  if (on) { setAuthError("un", ""); setAuthError("lo", ""); setAuthError("google", ""); }
 }
 // The gatekeeper: runs on load, on sign-out and after a profile switch.
 function authGate() {
   const acct = activeAccount();
   if (acct) { setPending(null); gateLock(false); return acct; }
   gateLock(true);
-  // mid-onboarding after a reload?  Resume it (or finish it if the name was chosen).
+  // mid-onboarding after a reload?  Resume it where the player left off.
   const pend = readPending();
   const p = pend && loadAccounts().accounts[pend.id];
-  if (p && p.username) { enterProfile(p); return null; }
-  if (p) showUsernamePane(p);
+  if (p && !p.username) { showAuthPane("username"); showUsernamePane(p); return null; }
+  // A stored session token means this device has signed in before: unlock from it
+  // rather than asking again. This is also the cross-device path - the server hands
+  // back the profile, inventory and stats that belong to that account.
+  const sess = readSession();
+  if (sess && sess.token) resumeSession(sess.token);
   return null;
+}
+function resumeSession(token) {
+  api("/api/account/session", { token: token })
+    .then(j => {
+      const acct = adoptSession(j);
+      if (j.needsUsername) { setPending(acct.id); gateLock(true); showAuthPane("username"); showUsernamePane(acct); return; }
+      setPending(null);
+      applyProfileToStorage(acct);
+      writeAuth({ mode: "account", current: acct.id, at: Date.now() });
+      switchingProfile = true;              // stop the outgoing page saving over it
+      gateLock(false);
+      toast("Welcome back, " + displayName(acct) + " — loading your harbour…");
+      setTimeout(() => location.reload(), 220);
+    })
+    .catch(e => {
+      if (!serverDown(e)) writeSession(null);   // a rejected token is worthless
+      // unreachable or expired: the gate stays up with both sign-in methods offered
+    });
 }
 // --- profile dashboard -------------------------------------------------------
 function renderProfile() {
@@ -3110,8 +3353,9 @@ function renderProfile() {
   paintAvatar(document.getElementById("pf-avatar"), acct);
   document.getElementById("pf-name").textContent = acct ? displayName(acct) : "Captain";
   document.getElementById("pf-id").textContent = acct
-    ? "Google account" +
-      " · " + (acct.email || acct.user || acct.id) + " · id " + acct.id
+    ? (acct.provider === "google" ? "Google account" : "Username & password account") +
+      (acct.email ? " · " + acct.email : "") + " · id " + acct.id +
+      (readSession() ? " · synced to the game server" : " · this device only")
     : "signed out — sign in to play. Guest play has been removed, and the harbour stays locked until an account is active.";
   // account buttons only make sense when there is an account to act on
   const signinBtn = document.getElementById("pf-signin");
@@ -3124,7 +3368,9 @@ function renderProfile() {
   const badges = document.getElementById("pf-badges");
   badges.textContent = "";
   const addBadge = (txt, cls) => badges.appendChild(el("span", "pf-badge" + (cls ? " " + cls : ""), txt));
-  addBadge(acct ? "🔐 Google sign-in" : "🔒 Google sign-in required");
+  addBadge(acct ? (acct.provider === "google" ? "🔐 Google sign-in" : "🔑 Username & password")
+                : "🔒 Sign in required");
+  if (acct && readSession()) addBadge("☁ synced", "g");
   addBadge("💎 " + G.gems + " gems banked", "g");
   if (acct) addBadge("🗓 joined " + new Date(acct.createdAt).toLocaleDateString());
   if (acct && acct.lastSeen) addBadge("⏱ seen " + fmtWhen(acct.lastSeen));
@@ -4042,7 +4288,11 @@ function applySavedRun(run) {
 let saveTimer = null;
 function queueSave() {
   if (saveTimer) return;
-  saveTimer = setTimeout(() => { saveTimer = null; saveGame(); }, 900);
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    saveGame();
+    queuePush();          // any state change also schedules the server sync
+  }, 900);
 }
 
 /* ------------------------------- leaderboard ------------------------------ */
@@ -5010,8 +5260,20 @@ document.getElementById("board-x").onclick = () => showBoard(false);
 document.getElementById("inv-close").onclick = () => showInv(false);
 document.getElementById("inv-x").onclick = () => showInv(false);
 /* ---- auth + profile wiring ---- */
-// Google is the only way in: no password forms, no guest button.
+/* ---- auth + profile wiring ---- */
+document.querySelectorAll("#auth-tabs .atab").forEach(t => {
+  t.onclick = () => { audioInit(); showAuthPane(t.dataset.pane); };
+});
+document.querySelectorAll("#local-tabs .atab").forEach(t => {
+  t.onclick = () => { audioInit(); setLocalMode(t.dataset.lmode); };
+});
+document.getElementById("google-play").onclick = () => { audioInit(); promptGoogle(); };
+document.getElementById("lo-go").onclick = () => { audioInit(); localSubmit(); };
 document.getElementById("un-go").onclick = () => confirmUsername();
+["lo-user", "lo-pass", "lo-pass2"].forEach(id => {
+  const el2 = document.getElementById(id);
+  if (el2) el2.addEventListener("keydown", ev => { if (ev.key === "Enter") localSubmit(); });
+});
 document.getElementById("un-name").addEventListener("keydown", ev => {
   if (ev.key === "Enter") confirmUsername();
 });

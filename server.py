@@ -42,9 +42,12 @@ from __future__ import annotations
 
 import argparse
 import functools
+import hashlib
+import hmac
 import http.server
 import json
 import os
+import re
 import secrets
 import socketserver
 import sys
@@ -52,7 +55,9 @@ import threading
 import time
 from collections import deque
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.error import HTTPError, URLError
+from urllib.parse import parse_qs, quote, urlparse
+from urllib.request import urlopen
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_PORT = 8000
@@ -60,6 +65,17 @@ CLIENT_TTL = 120.0         # seconds with no ping *and* no open stream before dr
 SWEEP_TTL = 8.0            # no stream + silent this long = a ghost from a page reload
 KEEPALIVE = 12.0           # seconds between SSE comments
 OFFER_SLOTS = 8            # max items per side of a trade
+
+# --- accounts ---------------------------------------------------------------
+ACCOUNTS_FILE = ROOT / "accounts.json"    # override with --accounts
+SESSION_TTL = 60 * 60 * 24 * 30           # a session token stays good for 30 days
+PBKDF2_ROUNDS = 120_000
+USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,16}$")
+# The OAuth client the page uses. Google's tokeninfo endpoint only accepts a token
+# minted for this audience, so a token for somebody else's app is refused.
+GOOGLE_CLIENT_ID = (os.environ.get("GOOGLE_CLIENT_ID")
+                    or "686810591475-21j0gv8i0uf8n9aiuof6jbbr6gi6uj9k.apps.googleusercontent.com")
+VERIFY_GOOGLE = True       # --no-verify-google turns this off (offline development only)
 
 
 # --------------------------------------------------------------------------- hub
@@ -239,6 +255,242 @@ class Hub:
 HUB = Hub()
 
 
+# ----------------------------------------------------------------- accounts
+def decode_jwt_claims(token: str) -> dict | None:
+    """Read a JWT's claims WITHOUT checking the signature (dev fallback only)."""
+    import base64
+    try:
+        part = str(token).split(".")[1]
+        pad = part + "=" * ((4 - len(part) % 4) % 4)
+        return json.loads(base64.urlsafe_b64decode(pad).decode("utf-8"))
+    except Exception:  # noqa: BLE001 - a junk token is the caller's problem
+        return None
+
+
+def verify_google(credential: str, timeout: float = 8.0) -> dict | None:
+    """Ask Google whether this ID token is genuine, and whose it is.
+
+    tokeninfo checks the signature and the expiry for us and needs no crypto
+    dependency (RS256 verification in pure stdlib is not practical). Returns the
+    claims, or None when Google refuses the token or cannot be reached.
+    """
+    if not credential:
+        return None
+    url = "https://oauth2.googleapis.com/tokeninfo?id_token=" + quote(str(credential), safe="")
+    try:
+        with urlopen(url, timeout=timeout) as resp:
+            claims = json.loads(resp.read().decode("utf-8"))
+    except HTTPError as exc:
+        try:
+            detail = exc.read().decode("utf-8", "replace")[:160]
+        except Exception:  # noqa: BLE001
+            detail = ""
+        print(f"[auth] Google rejected that ID token ({exc.code}) {detail}")
+        return None
+    except (URLError, OSError, ValueError) as exc:
+        print(f"[auth] could not reach Google to verify a token ({exc})")
+        return None
+    aud = str(claims.get("aud") or "")
+    if GOOGLE_CLIENT_ID and aud and aud != GOOGLE_CLIENT_ID:
+        print(f"[auth] token was minted for client {aud[:24]}…, not this game - refusing it")
+        return None
+    return claims
+
+
+class Accounts:
+    """Player accounts, persisted to a JSON file.
+
+    Records are keyed by a STABLE identity: the Google `sub` (falling back to the
+    verified email for records made before sub-keying) or `local:<username>` for
+    username/password players. Deliberately *not* keyed by session token, origin or
+    IP - that is what used to spawn a fresh empty account whenever a known Google
+    account arrived from a new browser, device or tunnel URL. Signing in again with
+    the same Google account always resolves to the same record, which is how a
+    player's profile, inventory and stats follow them across devices.
+    """
+
+    def __init__(self, path: Path) -> None:
+        self.path = Path(path)
+        self.lock = threading.RLock()
+        self.accounts: dict[str, dict] = {}
+        self.tokens: dict[str, dict] = {}
+        self.load()
+
+    # --- storage ---------------------------------------------------------
+    def load(self) -> None:
+        try:
+            if self.path.is_file():
+                blob = json.loads(self.path.read_text(encoding="utf-8") or "{}")
+                self.accounts = blob.get("accounts") or {}
+                self.tokens = blob.get("tokens") or {}
+        except (OSError, ValueError) as exc:
+            print(f"[auth] could not read {self.path.name} ({exc}) - starting empty")
+
+    def flush(self) -> None:
+        """Write atomically - a half-written accounts.json would lose every profile."""
+        with self.lock:
+            blob = {"accounts": self.accounts, "tokens": self.tokens, "saved": time.time()}
+            tmp = self.path.with_name(self.path.name + ".tmp")
+            try:
+                tmp.write_text(json.dumps(blob, separators=(",", ":")), encoding="utf-8")
+                os.replace(tmp, self.path)
+            except OSError as exc:
+                print(f"[auth] could not save {self.path.name} ({exc})")
+
+    # --- helpers ---------------------------------------------------------
+    @staticmethod
+    def _new(provider: str, username, name, email, avatar, sub=None) -> dict:
+        now = int(time.time() * 1000)
+        return {
+            "id": f"google:{sub}" if provider == "google" else f"local:{str(username).lower()}",
+            "provider": provider, "username": username, "name": name or username or "Captain",
+            "email": email, "avatar": avatar, "sub": sub,
+            "createdAt": now, "lastSeen": now,
+            "stats": {}, "save": None, "boards": [], "salt": None, "hash": None,
+        }
+
+    def find_username(self, username: str) -> dict | None:
+        want = str(username or "").strip().lower()
+        if not want:
+            return None
+        for a in self.accounts.values():
+            if str(a.get("username") or "").lower() == want:
+                return a
+        return None
+
+    @staticmethod
+    def public(acct: dict) -> dict:
+        """An account as the client may see it - never the password material."""
+        out = dict(acct)
+        out.pop("salt", None)
+        out.pop("hash", None)
+        return out
+
+    @staticmethod
+    def _hash(password: str, salt: str) -> str:
+        dk = hashlib.pbkdf2_hmac("sha256", str(password).encode("utf-8"),
+                                 str(salt).encode("utf-8"), PBKDF2_ROUNDS)
+        return f"pbkdf2${PBKDF2_ROUNDS}${dk.hex()}"
+
+    # --- google ----------------------------------------------------------
+    def login_google(self, sub, email, name, picture) -> tuple[dict, bool]:
+        with self.lock:
+            acct = self.accounts.get("google:" + str(sub))
+            if not acct and email:
+                # adopt a record created before this build keyed on the email instead
+                for a in self.accounts.values():
+                    if a.get("provider") == "google" and \
+                            str(a.get("email") or "").lower() == str(email).lower():
+                        acct = a
+                        break
+            created = False
+            if not acct:
+                acct = self._new("google", None, name, email, picture, sub=str(sub))
+                created = True
+            acct["sub"] = str(sub)
+            acct["email"] = email or acct.get("email")
+            acct["avatar"] = picture or acct.get("avatar")
+            acct["name"] = acct.get("username") or name or acct.get("name") or "Captain"
+            acct["lastSeen"] = int(time.time() * 1000)
+            self.accounts[acct["id"]] = acct
+        self.flush()
+        return acct, created
+
+    # --- username / password ---------------------------------------------
+    def register(self, username, password) -> dict:
+        username = str(username or "").strip()
+        if not USERNAME_RE.match(username):
+            raise ValueError("Username must be 3-16 characters: letters, numbers and underscores.")
+        if len(str(password or "")) < 6:
+            raise ValueError("Password must be at least 6 characters.")
+        with self.lock:
+            if self.find_username(username):
+                raise ValueError("That username is already taken - pick another.")
+            salt = secrets.token_hex(16)
+            acct = self._new("local", username, username, None, None)
+            acct["salt"] = salt
+            acct["hash"] = self._hash(password, salt)
+            self.accounts[acct["id"]] = acct
+        self.flush()
+        return acct
+
+    def login_local(self, username, password) -> dict:
+        with self.lock:
+            acct = (self.accounts.get("local:" + str(username or "").strip().lower())
+                    or self.find_username(username))
+        if not acct or not acct.get("hash"):
+            raise ValueError("No account with that username.")
+        if not hmac.compare_digest(str(acct["hash"]), self._hash(password, acct.get("salt") or "")):
+            raise ValueError("Wrong password.")
+        with self.lock:
+            acct["lastSeen"] = int(time.time() * 1000)
+        self.flush()
+        return acct
+
+    def set_username(self, acct_id: str, username) -> dict:
+        username = str(username or "").strip()
+        if not USERNAME_RE.match(username):
+            raise ValueError("3-16 characters: letters, numbers and underscores only.")
+        with self.lock:
+            acct = self.accounts.get(str(acct_id))
+            if not acct:
+                raise ValueError("Unknown account.")
+            other = self.find_username(username)
+            if other and other["id"] != acct["id"]:
+                raise ValueError("That username is already taken - pick another.")
+            acct["username"] = username
+            acct["name"] = username
+            acct["namedAt"] = int(time.time() * 1000)
+        self.flush()
+        return acct
+
+    # --- sessions ---------------------------------------------------------
+    def issue(self, acct: dict) -> str:
+        token = secrets.token_urlsafe(32)
+        with self.lock:
+            self.tokens[token] = {"id": acct["id"], "at": time.time()}
+            self._prune()
+        self.flush()
+        return token
+
+    def by_token(self, token) -> dict | None:
+        """Resolve a session token to its account - the cross-device load path."""
+        key = str(token or "")
+        with self.lock:
+            rec = self.tokens.get(key)
+            if not rec:
+                return None
+            if time.time() - rec["at"] > SESSION_TTL:
+                self.tokens.pop(key, None)
+                return None
+            rec["at"] = time.time()               # sliding expiry
+            return self.accounts.get(rec["id"])
+
+    def revoke(self, token) -> None:
+        with self.lock:
+            self.tokens.pop(str(token or ""), None)
+        self.flush()
+
+    def _prune(self) -> None:
+        now = time.time()
+        for t in [t for t, r in self.tokens.items() if now - r["at"] > SESSION_TTL]:
+            self.tokens.pop(t, None)
+
+    def store_profile(self, acct: dict, save, boards, stats) -> None:
+        with self.lock:
+            if save is not None:
+                acct["save"] = save
+            if boards is not None:
+                acct["boards"] = boards
+            if stats is not None:
+                acct["stats"] = stats
+            acct["lastSeen"] = int(time.time() * 1000)
+        self.flush()
+
+
+ACCOUNTS = Accounts(ACCOUNTS_FILE)
+
+
 # ----------------------------------------------------------------------- handler
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
     """Static handler plus the /api/* online hub, with one compact log line."""
@@ -272,10 +524,10 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass
 
-    def _body(self) -> dict:
+    def _body(self, limit: int = 524288) -> dict:
         try:
             n = int(self.headers.get("Content-Length") or 0)
-            if n <= 0 or n > 65536:
+            if n <= 0 or n > limit:
                 return {}
             return json.loads(self.rfile.read(n).decode("utf-8", "replace") or "{}")
         except Exception:  # noqa: BLE001 - a malformed body is the caller's problem
@@ -296,12 +548,15 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
         if path == "/api/players":
             return self._json({"players": HUB.public_players()})
         if path == "/api/health":
-            return self._json({"ok": True, "players": len(HUB.clients), "trades": len(HUB.trades)})
+            return self._json({"ok": True, "players": len(HUB.clients), "trades": len(HUB.trades),
+                               "accounts": len(ACCOUNTS.accounts)})
         return super().do_GET()
 
     def do_POST(self) -> None:  # noqa: N802 - stdlib signature
         path = urlparse(self.path).path
         body = self._body()
+        if path.startswith("/api/account/"):
+            return self._account(path, body)
         if path == "/api/join":
             client = HUB.add_client(body.get("name"), body.get("prof"), body.get("worth"), self._remote)
             print(f"  + online: {client['name']} ({client['host']}) worth {client['worth']:,}"
@@ -329,6 +584,57 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
         if path == "/api/signal":
             return self._signal(body)
         return self._json({"error": "not found"}, 404)
+
+    # --- accounts ---------------------------------------------------------
+    def _account(self, path: str, body: dict) -> None:
+        """The account API. Every reply carries the account, so a client can adopt it."""
+        action = path.rsplit("/", 1)[-1]
+        try:
+            if action == "google":
+                return self._acct_google(body)
+            if action == "register":
+                return self._acct_ok(ACCOUNTS.register(body.get("username"), body.get("password")),
+                                     created=True)
+            if action == "login":
+                return self._acct_ok(ACCOUNTS.login_local(body.get("username"), body.get("password")))
+            if action in ("session", "username", "save"):
+                acct = ACCOUNTS.by_token(body.get("token"))
+                if not acct:
+                    return self._json({"ok": False, "error": "session expired"}, 401)
+                if action == "session":
+                    return self._acct_ok(acct, token=body.get("token"))
+                if action == "username":
+                    return self._acct_ok(ACCOUNTS.set_username(acct["id"], body.get("username")),
+                                         token=body.get("token"))
+                ACCOUNTS.store_profile(acct, body.get("save"), body.get("boards"), body.get("stats"))
+                return self._json({"ok": True, "at": int(time.time() * 1000)})
+            if action == "logout":
+                ACCOUNTS.revoke(body.get("token"))
+                return self._json({"ok": True})
+        except ValueError as exc:
+            return self._json({"ok": False, "error": str(exc)}, 400)
+        return self._json({"ok": False, "error": "unknown account action"}, 404)
+
+    def _acct_google(self, body: dict) -> None:
+        credential = str(body.get("credential") or "")
+        claims = verify_google(credential) if VERIFY_GOOGLE else decode_jwt_claims(credential)
+        if not claims or not claims.get("sub"):
+            return self._json({"ok": False,
+                               "error": "Google could not verify that sign-in - try again."}, 401)
+        acct, created = ACCOUNTS.login_google(claims.get("sub"), claims.get("email"),
+                                              claims.get("name"), claims.get("picture"))
+        who = acct.get("username") or "no username yet"
+        print(f"  {'+' if created else '='} account {acct['id']} ({who})"
+              f" - {len(ACCOUNTS.accounts)} account(s)", flush=True)
+        return self._acct_ok(acct, created=created)
+
+    def _acct_ok(self, acct: dict, created: bool = False, token: str | None = None) -> None:
+        token = token or ACCOUNTS.issue(acct)
+        return self._json({
+            "ok": True, "token": token, "created": bool(created),
+            "needsUsername": not bool(acct.get("username")),
+            "account": ACCOUNTS.public(acct),
+        })
 
     # --- trade signalling -------------------------------------------------
     def _signal(self, body: dict) -> None:
@@ -541,6 +847,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--ngrok", action="store_true", help="open an ngrok tunnel (same as USE_NGROK=1)")
     p.add_argument("--no-ngrok", action="store_true", help="force the tunnel off, whatever else is set")
     p.add_argument("--region", default=None, help="optional ngrok region (e.g. au, eu, us)")
+    p.add_argument("--accounts", default=str(ACCOUNTS_FILE),
+                   help="where to keep player accounts (default: accounts.json)")
+    p.add_argument("--no-verify-google", action="store_true",
+                   help="skip Google's token check (offline development ONLY - unsafe)")
     return p.parse_args()
 
 
@@ -657,14 +967,28 @@ def _serve_forever(httpd: ReusableServer) -> int:
 
 
 def main() -> int:
+    global VERIFY_GOOGLE
     args = parse_args()
     root = str(Path(args.root).resolve())
     handler = functools.partial(QuietHandler, directory=root)
+
+    if args.no_verify_google:
+        VERIFY_GOOGLE = False
+        print("[auth] WARNING: Google ID tokens are NOT being verified (--no-verify-google).")
+        print("[auth] anyone can claim any account id - development use only.\n")
+
+    # a different accounts file (tests, a second instance) is honoured before serving
+    wanted = Path(args.accounts)
+    if wanted.resolve() != ACCOUNTS.path.resolve():
+        ACCOUNTS.path = wanted
+        ACCOUNTS.accounts, ACCOUNTS.tokens = {}, {}
+        ACCOUNTS.load()
 
     print("=" * 66)
     print("  SEA SIEGE TOWER DEFENSE")
     print("=" * 66)
     print(f"  serving : {root}")
+    print(f"  accounts: {ACCOUNTS.path} ({len(ACCOUNTS.accounts)} saved)")
 
     try:
         httpd = ReusableServer((args.host, args.port), handler)
@@ -685,6 +1009,7 @@ def main() -> int:
         print(f"  local   : http://localhost:{args.port}/")
         print(f"  lan     : http://<your-ip>:{args.port}/")
         print("  hub     : /api/events (SSE) - /api/join - /api/signal - /api/players")
+        print("  accounts: /api/account/* - Google + username/password, synced across devices")
         print("  ngrok   : off  (set USE_NGROK=1 or pass --ngrok for a public link)")
         print("=" * 66)
         print("  Ctrl+C to stop.\n")
