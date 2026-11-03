@@ -34,3 +34,7 @@ t=2026-11-03T18:19:38+1000 lvl=warn msg="failed to check for update" obj=updater
 ==================================================================
   Ctrl+C to stop.
 
+  · 127.0.0.1 - "GET /api/health HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET /api/leaderboard HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
+  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
