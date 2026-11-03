@@ -337,6 +337,51 @@
   .btn.big{font-size:13.5px;padding:13px 14px;letter-spacing:.5px;margin-bottom:4px;
     background:linear-gradient(150deg,#2f6ea8,#14344f);border-color:rgba(143,214,255,.6);color:#eaf6ff}
   #google-play{display:block;width:100%}
+  /* ---- core stat grid (armoury cards): the prose lives in the tooltip ---- */
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:5px 0 4px}
+  .stat-cell{background:rgba(12,22,36,.55);border:1px solid var(--stroke);border-radius:8px;
+    padding:3px 5px;text-align:center;line-height:1.15}
+  .stat-cell b{display:block;font-size:11.5px;color:#eaf6ff;font-weight:800}
+  .stat-cell small{display:block;font-size:7.5px;letter-spacing:.7px;color:var(--dim);text-transform:uppercase}
+  .card.mini .sp{display:block;font-size:9px;color:#8fd6ff;font-weight:700;margin-top:2px}
+  .card.mini{cursor:help}
+  /* ---- inventory: one list, three sleek dropdowns ---- */
+  .inv-selects{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 4px}
+  .inv-selects label{display:flex;align-items:center;gap:5px;font-size:9px;letter-spacing:1px;
+    text-transform:uppercase;color:var(--dim);font-weight:800}
+  .inv-selects select{max-width:190px}
+  /* ---- crate rolling ---- */
+  #roll{position:absolute;inset:0;display:none;justify-items:center;align-items:center;z-index:9;
+    border-radius:16px;background:radial-gradient(600px 400px at 50% 40%, rgba(10,24,40,.88), rgba(3,6,11,.96));
+    backdrop-filter:blur(4px)}
+  #roll.on{display:grid}
+  .roll-box{text-align:center}
+  .roll-card{width:118px;height:118px;margin:0 auto 16px;display:grid;place-items:center;font-size:54px;
+    border-radius:22px;border:2px solid var(--stroke);background:rgba(12,22,36,.85);
+    box-shadow:0 18px 40px rgba(0,0,0,.6)}
+  .roll-card.spin{animation:rollspin .16s linear}
+  .roll-card.win{animation:rollwin .5s cubic-bezier(.2,1.5,.4,1) 1;animation-fill-mode:forwards}
+  @keyframes rollspin{from{transform:translateY(-9px) scale(.94);opacity:.55}to{transform:none;opacity:1}}
+  @keyframes rollwin{0%{transform:scale(.72) rotate(-6deg)}60%{transform:scale(1.12) rotate(3deg)}100%{transform:scale(1)}}
+  .roll-card.r-rare{border-color:rgba(105,184,255,.75)}
+  .roll-card.r-epic{border-color:rgba(195,155,255,.8)}
+  .roll-card.r-legendary{border-color:rgba(255,209,102,.85);box-shadow:0 0 28px rgba(255,209,102,.35)}
+  .roll-card.r-mythic{border-color:rgba(255,122,217,.9);box-shadow:0 0 34px rgba(255,122,217,.45)}
+  .roll-label{font-size:13px;font-weight:800;color:#eaf6ff}
+  /* ---- crate tiers + trade preview ---- */
+  .crate-card.t4{border-color:rgba(195,155,255,.5)}
+  .crate-card.t5{border-color:rgba(255,122,217,.55);background:linear-gradient(150deg,rgba(80,40,90,.4),rgba(24,14,34,.5))}
+  .trade-preview{display:flex;gap:11px;align-items:center;margin:9px 0 4px;padding:10px 12px;border-radius:13px;
+    background:rgba(143,214,255,.05);border:1px solid var(--stroke)}
+  .trade-preview .cos-swatch{width:54px;height:54px;font-size:22px;flex:0 0 auto}
+  .trade-preview .cos-meta{flex:1;min-width:0;text-align:left}
+  .trade-preview .cos-name{font-size:13px}
+  .tv-detail{display:block;font-size:10px;color:var(--dim);line-height:1.45;margin-top:2px}
+  .pick .rarity{margin-left:5px}
+  #repair-panel{margin-top:8px;padding:9px 10px;border-radius:12px;background:rgba(87,224,138,.06);
+    border:1px solid rgba(87,224,138,.28)}
+  #repair-panel .sect2{color:#8ee6b0}
+  #repair-panel .sect2 span{color:var(--dim);font-weight:700;float:right}
   /* onboarding identity strip: avatar + the Google account being named */
   .who{display:flex;align-items:center;gap:9px;margin:2px 0 12px;padding:9px 11px;border-radius:12px;
     background:rgba(143,214,255,.06);border:1px solid var(--stroke);font-size:10.5px;color:var(--dim);
@@ -560,13 +605,22 @@
         <button class="btn tiny" id="inv-x" style="width:auto;padding:5px 10px">✕ Close</button>
       </div>
       <p id="inv-sub"></p>
-      <div class="tabs" id="inv-tabs"></div>
+      <div class="inv-selects">
+        <label>View<select class="mini-sel" id="inv-cat"></select></label>
+        <label>Show<select class="mini-sel" id="inv-filter"></select></label>
+        <label>Sort<select class="mini-sel" id="inv-sort"></select></label>
+      </div>
       <div id="inv-body"></div>
       <div class="board-foot">
         <span class="hint" style="flex:1;align-self:center">Gems come only from clearing waves — cosmetics never change how the battle plays.</span>
         <button class="btn" id="inv-reset">Reset profile</button>
         <button class="btn primary" id="inv-close">Done</button>
       </div>
+    </div></div>
+    <!-- Crate rolling animation: a spray of possible drops that settles on the real one -->
+    <div id="roll"><div class="roll-box">
+      <div class="roll-card r-common" id="roll-card">📦</div>
+      <div class="roll-label" id="roll-label">Rolling…</div>
     </div></div>
     <div id="trade"><div class="box">
       <div class="board-head">
@@ -623,7 +677,7 @@
 
     <div class="hud">
       <div class="stat gold"><b id="ui-gold">0</b><small>Gold</small></div>
-      <div class="stat lives"><b id="ui-lives">20</b><small>Lives</small></div>
+      <div class="stat lives"><b id="ui-lives">12</b><small>Hull HP</small></div>
       <div class="stat wave"><b id="ui-wave">0</b><small>Wave</small></div>
     </div>
 
@@ -689,16 +743,13 @@
       <label class="switch"><input type="checkbox" id="auto" /> Auto-start waves</label>
       <label class="switch"><input type="checkbox" id="grid" checked /> Show grid</label>
       <label class="switch"><input type="checkbox" id="ranges" /> Show all ranges</label>
-      <label class="switch"><input type="checkbox" id="endless" /> Endless (no lives)</label>
       <label class="switch"><input type="checkbox" id="muted" /> Mute sound</label>
-      <label class="switch"><input type="checkbox" id="shake" checked /> Screen shake</label>
     </div>
-    <div style="margin-top:6px">
-      <select class="mini-sel" id="diff">
-        <option value="relaxed">Difficulty: Relaxed — extra gold, softer fleet</option>
-        <option value="normal" selected>Difficulty: Normal — balanced siege</option>
-        <option value="brutal">Difficulty: Brutal — tough, fast, cheap kills</option>
-      </select>
+
+    <div id="repair-panel" hidden>
+      <div class="sect2">🛠 Repair phase <span id="rep-live">hull 12/12</span></div>
+      <button class="btn primary" id="repair-btn">Repair hull</button>
+      <div class="hint" id="repair-hint"></div>
     </div>
 
     <div class="sect">Comms</div>
@@ -968,11 +1019,17 @@ const GLOBAL_UPGRADES = {
   gold:  { levels: 5, base: 760,  label: "Gold per kill" },
   crit:  { levels: 5, base: 1040, label: "Crit Chance" }
 };
+// One siege, no easy mode. Early gold is deliberately scarce and the fleet scales
+// steeply, so a placement or an upgrade that does nothing is a wave you lose.
 const DIFFICULTY = {
-  relaxed: { hp: 0.80, speed: 0.92, gold: 1.30, startGold: 900, lives: 25, label: "Relaxed" },
-  normal:  { hp: 1.00, speed: 1.00, gold: 1.00, startGold: 750, lives: 20, label: "Normal" },
-  brutal:  { hp: 1.32, speed: 1.08, gold: 0.85, startGold: 600, lives: 15, label: "Brutal" }
+  siege: { hp: 1.18, speed: 1.04, gold: 0.62, startGold: 320, lives: 12, label: "Siege" }
 };
+const WAVE_CAP = 10000;      // endless, but the run is capped here
+const REPAIR_HP = 6;         // hull restored per repair
+function repairCost() {
+  // Steep, compounding, and it grows with the wave - repairing is a real sacrifice.
+  return Math.round(38 * Math.pow(1.34, G.repairs || 0) * (1 + 0.05 * G.wave));
+}
 // Tier upgrades scale with what the turret cost, so a mythic's tier III is a real
 // investment while a rank-1 nest stays cheap.
 function tierCost(t) { return Math.round(TOWERS[t.type].cost * (t.tier === 1 ? 0.85 : 1.55)); }
@@ -985,17 +1042,17 @@ function newGame() {
     gems: prev.gems, gemsEarned: prev.gemsEarned, runsPlayed: prev.runsPlayed,
     cos: Object.assign({}, prev.cos), cosOwn: Object.assign({}, prev.cosOwn)
   } : null;
-  const diff = document.getElementById("diff").value;
+  const diff = "siege";
   const d = DIFFICULTY[diff];
   G = {
-    diff, gold: d.startGold, lives: d.lives, wave: 0, over: false, won: false, paused: false,
+    diff, gold: d.startGold, lives: d.lives, baseMax: d.lives, wave: 0, over: false, won: false, paused: false,
     towers: [], enemies: [], projectiles: [], beams: [], parts: [], fires: [],
     toasts: [], time: 0, spawnQueue: [],
     globals: { rate: 0, range: 0, dmg: 0, gold: 0, crit: 0 },
     sel: null, build: null, moving: null, hover: { x: -99, y: -99, ok: false },
     auto: document.getElementById("auto").checked,
-    speed: 1, shake: 0, shakeAmp: document.getElementById("shake").checked,
-    endless: document.getElementById("endless").checked,
+    speed: 1,
+    phase: "build",                       // build | repair | battle
     showGrid: document.getElementById("grid").checked,
     showRanges: document.getElementById("ranges").checked,
     waveActive: false, kills: 0, leaked: 0, subWarned: false, repairs: 0,
@@ -1004,7 +1061,7 @@ function newGame() {
     statGold: 0, statKills: 0, statBreaches: 0,
     cos: { env: "dawn", fleet: "royal", wrap: "bare", banner: "harbour", fx: "standard" },
     cosOwn: { "env:dawn": true, "fleet:royal": true, "wrap:bare": true, "banner:harbour": true, "fx:standard": true },
-    crates: { supply: 0, royal: 0 },
+    crates: { supply: 0, royal: 0, admiral: 0, reliquary: 0 },
     weather: []
   };
   if (keep) {
@@ -1033,22 +1090,20 @@ function bootFromSave() {
       ["env", "fleet", "wrap", "banner", "fx"].forEach(k => { if (save.cos[k]) G.cos[k] = save.cos[k]; });
     }
     if (save.stats) G.runsPlayed = save.stats.runs || 0;
-    if (save.crates) G.crates = { supply: save.crates.supply || 0, royal: save.crates.royal || 0 };
+    if (save.crates) {
+      G.crates = {};
+      Object.keys(CRATES).forEach(k => { G.crates[k] = save.crates[k] || 0; });
+    }
     if (save.options) {
       const o = save.options;
       G.auto = !!o.auto;
       G.showGrid = !!o.grid;
       G.showRanges = !!o.ranges;
-      G.endless = !!o.endless;
-      G.shakeAmp = !!o.shake;
       Audio_.muted = !!o.muted;
-      if (o.diff && DIFFICULTY[o.diff]) G.diff = o.diff;
+      G.diff = "siege";
       // mirror onto the panel controls so the UI matches the save
       const set = (id, v) => { const e = document.getElementById(id); if (e) e.checked = !!v; };
-      set("auto", o.auto); set("grid", o.grid); set("ranges", o.ranges);
-      set("endless", o.endless); set("shake", o.shake); set("muted", o.muted);
-      const dsel = document.getElementById("diff");
-      if (dsel && o.diff) dsel.value = o.diff;
+      set("auto", o.auto); set("grid", o.grid); set("ranges", o.ranges); set("muted", o.muted);
     }
   }
   bakeTerrain(envNow());
@@ -1091,9 +1146,18 @@ function towerStats(t) {
     dps: (b.projType === "flame" || b.projType === "tesla") ? dmg / rate : dmg / rate
   };
 }
-function enemyHpMul() { return (1 + Math.pow(Math.max(0, G.wave - 1), 1.32) * 0.20) * DIFFICULTY[G.diff].hp; }
-function enemySpeedMul() { return (1 + 0.028 * (G.wave - 1)) * DIFFICULTY[G.diff].speed; }
-function enemyGoldMul() { return (1 + 0.05 * (G.wave - 1) + 0.10 * G.globals.gold) * DIFFICULTY[G.diff].gold; }
+// Steep and unforgiving: HP compounds polynomially, hull armour climbs with the wave
+// so plain damage stops being enough, and the fleet slowly outruns cheap turrets.
+function enemyHpMul() {
+  const w = Math.max(0, G.wave - 1);
+  return (1 + Math.pow(w, 1.52) * 0.34 + w * 0.06) * DIFFICULTY[G.diff].hp;
+}
+function enemySpeedMul() {
+  return Math.min(2.45, 1 + 0.034 * (G.wave - 1)) * DIFFICULTY[G.diff].speed;
+}
+function enemyArmorBonus() { return Math.min(0.32, 0.0068 * Math.max(0, G.wave - 1)); }
+// Gold is scarce on purpose: kill money barely keeps up with the fleet's HP growth.
+function enemyGoldMul() { return (1 + 0.022 * (G.wave - 1) + 0.04 * G.globals.gold) * DIFFICULTY[G.diff].gold; }
 // Bosses scale far more gently than the escort fleet, so wave-5+ bosses stay killable.
 function enemyHp(type) {
   const m = enemyHpMul();
@@ -1211,7 +1275,7 @@ function spawnEnemy(type, distAlong) {
   const e = {
     type, x: p.x, y: p.y, ang: p.ang, d: distAlong || 0,
     hpMax: hp, hp: hp,
-    speed: b.speed * enemySpeedMul(), armor: b.armor, r: b.r,
+    speed: b.speed * enemySpeedMul(), armor: Math.min(0.72, b.armor + enemyArmorBonus()), r: b.r,
     gold: Math.round(b.gold * enemyGoldMul()), slowT: 0, slowAmt: 0,
     subPhase: rnd(0, 6), submerged: false, revealed: 0, hitFlash: 0, wake: rnd(0, 4),
     dead: false, bob: rnd(0, TAU), spawnScale: 0
@@ -1266,12 +1330,6 @@ function leakEnemy(e) {
   e.dead = true;
   const cost = e.type === "boss" ? 5 : e.type === "galleon" ? 3 : 1;
   G.leaked++;
-  if (G.endless) {
-    sfx("leak");
-    floatText(BASE[0], BASE[1] - 90, "BREACH " + G.leaked, "#ff8f9a");
-    banner("Breach! (Endless — lives ignored)", "#ff8f9a");
-    return;
-  }
   G.lives -= cost;
   sfx("leak");
   toast("-" + cost + " life" + (cost > 1 ? "s" : "") + " — " + ENEMIES[e.type].name + " broke through!");
@@ -1482,9 +1540,10 @@ function waveComp(n) {
   const list = [];
   const skiffs = 5 + Math.round(n * 1.35);
   for (let i = 0; i < skiffs; i++) list.push("skiff");
-  if (n >= 3) for (let i = 0; i < 1 + Math.floor((n - 3) / 2); i++) list.push("galleon");
-  if (n >= 5) for (let i = 0; i < 1 + Math.floor((n - 5) / 3); i++) list.push("sub");
+  if (n >= 3) for (let i = 0; i < 1 + Math.floor((n - 3) / 1.6); i++) list.push("galleon");
+  if (n >= 4) for (let i = 0; i < 1 + Math.floor((n - 4) / 2.2); i++) list.push("sub");
   if (n % 5 === 0) list.push("boss");
+  if (n % 7 === 0) list.push("boss");      // double Leviathan from wave 7 on
   // shuffle a little (keep the boss late)
   const last = list.filter(t => t === "boss");
   const rest = list.filter(t => t !== "boss");
@@ -1493,12 +1552,13 @@ function waveComp(n) {
 }
 function startWave() {
   if (G.over || G.waveActive) return;
+  G.phase = "battle";
   G.wave++;
   G.waveActive = true;
   G.subWarned = false;
   const comp = waveComp(G.wave);
   G.waveHadBoss = comp.includes("boss");
-  const gap = Math.max(0.34, 0.95 - G.wave * 0.022);
+  const gap = Math.max(0.26, 0.90 - G.wave * 0.024);
   let t = 0;
   G.spawnQueue = comp.map(type => { t += gap * (type === "boss" ? 2.6 : 1); return { type, t }; });
   sfx("wave");
@@ -1519,7 +1579,8 @@ function waveCleared() {
   G.waveActive = false;
   // the difficulty's gold multiplier applies to the wave purse too, so Relaxed really
   // is richer and Brutal really is tighter
-  const bonus = Math.round((240 + G.wave * 90 + Math.round(G.globals.gold * 70)) * DIFFICULTY[G.diff].gold);
+  // Slashed hard: a wave pays a fraction of what it used to, so upgrades are earned.
+  const bonus = Math.round((58 + G.wave * 21 + Math.round(G.globals.gold * 16)) * DIFFICULTY[G.diff].gold);
   const gemGain = GEM_REWARD_WAVE + (G.waveHadBoss ? GEM_REWARD_BOSS : 0);
   G.gold += bonus;
   G.totalGold += bonus;
@@ -1541,7 +1602,8 @@ function waveCleared() {
   sfx("coin");
   sfx("gem");
   ui();
-  if (!G.endless && G.wave >= 20 && !G.won) { endGame(true); return; }
+  if (G.wave >= WAVE_CAP && !G.won) { endGame(true); return; }
+  G.phase = "repair";                      // the structured inter-wave repair window
   // a boss wave pays out a Supply Crate for the crate room
   if (G.waveHadBoss) {
     G.crates.supply = (G.crates.supply || 0) + 1;
@@ -1705,7 +1767,6 @@ function update(dt) {
         if (p.y < H && !isLand(p.x, p.y)) splash(p.x, p.y, big ? 24 : 16);
         splashDamage(p.x, p.y, p.splash, p.dmg, p.splashDmg, p.src);
         if (p.pool) addFire(p.x, p.y, Math.max(38, p.splash * 0.7), p.dmg * 0.32, 4.0);
-        if (G.shakeAmp) G.shake += big ? 9 : 5;
       }
     }
     if (p.life <= 0) p.dead = true;
@@ -1724,7 +1785,6 @@ function update(dt) {
   }
   G.parts = G.parts.filter(q => q.life > 0);
 
-  if (G.shake > 0) G.shake = Math.max(0, G.shake - dt * 26);
 
   // wave finished?
   if (G.waveActive && !G.spawnQueue.length && !G.enemies.some(e => !e.dead)) waveCleared();
@@ -2576,17 +2636,32 @@ function drawHUD(t) {
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.roundRect(hx, hy, hw, hh, 14); ctx.fill(); ctx.stroke();
 
-  // row 1 — lives as hearts
-  const hearts = Math.max(0, G.lives);
-  const shown = Math.min(hearts, 9);
-  for (let i = 0; i < shown; i++) {
-    const pulse = hearts <= 5 ? .65 + .35 * Math.sin(t * 5 + i) : 1;
-    drawHeart(hx + 24 + i * 24, hy + 28, 18, "rgba(255,95,110," + pulse.toFixed(2) + ")", "rgba(255,200,210,.6)");
+  // row 1 — the harbour hull bar: the base the fleet is trying to breach
+  const hull = Math.max(0, G.lives);
+  const hullMax = Math.max(1, G.baseMax || hull || 1);
+  const frac = clamp(hull / hullMax, 0, 1);
+  const low = frac <= 0.34;
+  ctx.textAlign = "left";
+  ctx.fillStyle = low ? "#ff9f9f" : "rgba(200,225,250,.85)";
+  ctx.font = "800 10.5px Segoe UI, sans-serif";
+  ctx.fillText("HARBOUR HULL", hx + 24, hy + 27);
+  ctx.textAlign = "right";
+  ctx.fillStyle = low ? "#ffc0c0" : "#eaf6ff";
+  ctx.font = "800 15px Segoe UI, sans-serif";
+  ctx.fillText(hull + " / " + hullMax, hx + hw - 16, hy + 29);
+  const bx = hx + 24, bw = hw - 48, byy = hy + 36, bhh = 12;
+  ctx.fillStyle = "rgba(0,0,0,.45)";
+  ctx.beginPath(); ctx.roundRect(bx, byy, bw, bhh, 6); ctx.fill();
+  const hg = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+  if (low) { hg.addColorStop(0, "#ff5f6e"); hg.addColorStop(1, "#ffb3b3"); }
+  else { hg.addColorStop(0, "#35a86f"); hg.addColorStop(1, "#8ee6b0"); }
+  ctx.fillStyle = hg;
+  ctx.beginPath(); ctx.roundRect(bx, byy, Math.max(3, bw * frac), bhh, 6); ctx.fill();
+  ctx.strokeStyle = "rgba(140,200,255,.22)"; ctx.lineWidth = 1; ctx.stroke();
+  if (frac < 1) {
+    ctx.fillStyle = "rgba(255,200,210,.22)";
+    ctx.beginPath(); ctx.roundRect(bx + bw * frac, byy, Math.max(2, bw * (1 - frac)), bhh, 6); ctx.fill();
   }
-  ctx.fillStyle = "#ffdfe4"; ctx.font = "800 17px Segoe UI, sans-serif"; ctx.textAlign = "left";
-  ctx.fillText(hearts > shown ? "×" + hearts : String(hearts), hx + 30 + shown * 24, hy + 34);
-  ctx.fillStyle = "rgba(255,200,210,.7)"; ctx.font = "700 10px Segoe UI, sans-serif";
-  ctx.fillText(G.endless ? "LIVES · ENDLESS (IGNORED)" : "LIVES", hx + 24, hy + 48);
 
 
   // row 2 — gold (left) and wave (right)
@@ -2601,9 +2676,9 @@ function drawHUD(t) {
 
   ctx.textAlign = "right";
   ctx.fillStyle = "#9fd6ff"; ctx.font = "800 18px Segoe UI, sans-serif";
-  ctx.fillText("WAVE " + G.wave + (G.endless ? "" : "/20"), hx + hw - 16, hy + 74);
+  ctx.fillText("WAVE " + G.wave, hx + hw - 16, hy + 74);
   ctx.fillStyle = "rgba(160,210,255,.7)"; ctx.font = "700 10px Segoe UI, sans-serif";
-  ctx.fillText(diff.label.toUpperCase() + (G.endless ? " · ENDLESS" : ""), hx + hw - 16, hy + 88);
+  ctx.fillText(diff.label.toUpperCase() + " · MAX " + fmtNum(WAVE_CAP), hx + hw - 16, hy + 88);
 
   // ---- wave progress / ship counter ----
   const alive = G.enemies.filter(e => !e.dead).length;
@@ -2656,9 +2731,7 @@ function render() {
   const t = G.time;
   drawWater(t);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  const sh = G.shake > 0 ? G.shake : 0;
   ctx.save();
-  if (sh) ctx.translate(rnd(-sh, sh), rnd(-sh, sh));
   ctx.clearRect(-24, -24, W + 48, H + 48);
   ctx.drawImage(water, 0, 0);
   ctx.drawImage(land, 0, 0);
@@ -3671,14 +3744,58 @@ function closeTradeRoom(msg) {
   if (msg) toast("Trade: " + msg);
   renderTradeRoom();
 }
+// Basic starter gear is not tradable: only Rare and above can change hands.
+// (Read RARITY_ORDER inside the call, never at load: it is declared further down and a
+// top-level read there is a temporal-dead-zone throw that kills the whole script.)
+function isTradeable(item) {
+  return RARITY_ORDER.indexOf(item.r || "common") >= RARITY_ORDER.indexOf("rare");
+}
 function tradableItems() {
   const list = [];
   COSMETIC_CATS.forEach(cat => {
     Object.entries(cat.items).forEach(([id, item]) => {
-      if (unlocked(cat.id, id)) list.push({ key: cosId(cat.id, id), cat: cat.id, id: id, item: item });
+      if (unlocked(cat.id, id) && isTradeable(item)) {
+        list.push({ key: cosId(cat.id, id), cat: cat.id, id: id, item: item });
+      }
     });
   });
-  return list;
+  return list.sort((a, b) => itemWorth(b.item) - itemWorth(a.item));
+}
+function rarityChip(item) {
+  return el("span", "rarity " + (item.r || "common"), rarityOf(item).name);
+}
+// The inspect panel: exact sprite, stats and rarity before anything is committed.
+let tradePeek = null;
+function tradeDetail(it) {
+  if (it.cat === "turret") return turretStatLine(it.id) + " · builds for " + TOWERS[it.id].cost + " 🪙 in a run";
+  if (it.cat === "env") return "Re-bakes the whole map — " + it.item.name + " terrain, water and weather.";
+  if (it.cat === "fleet") return "Recolours every enemy vessel in the " + it.item.name + " livery.";
+  if (it.cat === "wrap") return "Finishes your turret pads in " + it.item.name + ".";
+  if (it.cat === "banner") return "Hangs " + it.item.name + " over the harbour.";
+  if (it.cat === "fx") return "Recolours your bolts, shells and beams.";
+  return "";
+}
+function tradePreviewBox() {
+  const box = el("div", "trade-preview");
+  const it = tradePeek ? itemByKey(tradePeek) : null;
+  if (!it) {
+    box.appendChild(el("span", "hint",
+      "Select an item on either side to inspect its sprite, stats and rarity before you commit."));
+    return box;
+  }
+  const sw = el("div", "cos-swatch");
+  sw.style.background = cosSwatch(it.cat, it.id);
+  if (it.cat === "turret") sw.textContent = it.item.glyph || "🔱";
+  box.appendChild(sw);
+  const meta = el("div", "cos-meta");
+  meta.appendChild(el("span", "cos-name", it.item.name));
+  const chipRow = el("span", null, "");
+  chipRow.appendChild(rarityChip(it.item));
+  chipRow.appendChild(el("span", "rarity", "⭐ " + itemWorth(it.item) + " pts"));
+  meta.appendChild(chipRow);
+  meta.appendChild(el("span", "tv-detail", tradeDetail(it)));
+  box.appendChild(meta);
+  return box;
 }
 function itemByKey(key) {
   const [cat, id] = String(key).split(":");
@@ -3872,9 +3989,17 @@ function renderTradeRoom() {
       if (key) {
         const it = itemByKey(key);
         s.textContent = it ? (it.item.glyph ? it.item.glyph + " " : "") + it.item.name.slice(0, 14) : key;
-        if (it) { s.style.borderColor = rarityOf(it.item).col; s.title = it.item.name + " · " +
-          rarityOf(it.item).name + " · " + itemWorth(it.item) + " pts"; }
-        if (mine && !t.mineLocked) { s.title += " (click to remove)"; s.onclick = () => tradeRemove(key); }
+        if (it) {
+          s.style.borderColor = rarityOf(it.item).col;
+          s.appendChild(rarityChip(it.item));
+          s.title = it.item.name + " · " + rarityOf(it.item).name + " · " + itemWorth(it.item) + " pts" +
+            (mine && !t.mineLocked ? " (click to inspect, shift-click to remove)" : " (click to inspect)");
+          s.onclick = ev => {
+            tradePeek = key;
+            if (mine && !t.mineLocked && ev && ev.shiftKey) { tradeRemove(key); return; }
+            renderTradeRoom();
+          };
+        }
       }
       slots.appendChild(s);
     }
@@ -3882,13 +4007,26 @@ function renderTradeRoom() {
     if (mine) {
       box.appendChild(el("div", "sect2", t.mineLocked ? "Locked ✓ — click Unlock to change" : "Add from your hold"));
       const picks = el("div", "pick-grid");
-      tradableItems().forEach(o => {
-        const b = el("button", "pick", (o.item.glyph ? o.item.glyph + " " : "") + o.item.name +
-          " (" + itemWorth(o.item) + ")");
+      const mineList = tradableItems();
+      if (!mineList.length) {
+        picks.appendChild(el("div", "hint",
+          "Nothing tradable yet — only Rare, Epic, Legendary and Mythic items can change hands."));
+      }
+      mineList.forEach(o => {
+        const b = el("button", "pick", (o.item.glyph ? o.item.glyph + " " : "") + o.item.name);
+        b.appendChild(rarityChip(o.item));
         b.disabled = t.mineLocked || t.mine.includes(o.key);
-        b.onclick = () => tradeAdd(o.key);
+        b.title = o.item.name + " · " + rarityOf(o.item).name + " · " + itemWorth(o.item) + " worth pts";
+        b.onclick = () => { tradePeek = o.key; tradeAdd(o.key); };
         picks.appendChild(b);
       });
+      const blocked = Object.keys(G.cosOwn).filter(k => {
+        const it = itemByKey(k);
+        return it && !isTradeable(it.item);
+      }).length;
+      if (blocked) {
+        picks.appendChild(el("div", "hint", blocked + " basic item(s) in your hold cannot be traded at all."));
+      }
       box.appendChild(picks);
     }
     return box;
@@ -3896,6 +4034,7 @@ function renderTradeRoom() {
   cols.appendChild(side(true));
   cols.appendChild(side(false));
   host.appendChild(cols);
+  host.appendChild(tradePreviewBox());
 
   const bar = el("div", "trade-bar");
   const row = el("div", "row");
@@ -4006,16 +4145,39 @@ function armoryCard(type) {
     };
     return card;
   }
-  if (b.mythic) card.title = b.name + " — unlocked. Costs " + b.cost + " gold to build in a run.";
   card.appendChild(el("div", "glyph", b.glyph));
   const meta = el("div", "meta");
   meta.appendChild(el("b", null, b.name));
-  meta.appendChild(el("span", null, b.desc));
-  if (b.mythic) meta.appendChild(el("span", "mystats", turretStatLine(type) + " · " + b.cost + " 🪙 in a run"));
+  meta.appendChild(statGrid(b));
+  meta.appendChild(el("span", "sp", b.special.name));
   card.appendChild(meta);
-  card.appendChild(el("div", "cost", b.cost + " 🪙"));
+  // the long prose is a hover tooltip, not a wall of text on the card
+  card.title = turretTooltip(type);
   card.onclick = () => toggleBuild(type);
   return card;
+}
+// Core numbers in one tidy grid: damage, range, fire rate, cost.
+function statGrid(b) {
+  const g = el("div", "stat-grid");
+  [["DMG", String(b.dmg)], ["RANGE", String(Math.round(b.range))],
+   ["RATE", fmtRate(b.rate)], ["COST", b.cost + "🪙"]].forEach(pair => {
+    const c = el("div", "stat-cell");
+    c.appendChild(el("b", null, pair[1]));
+    c.appendChild(el("small", null, pair[0]));
+    g.appendChild(c);
+  });
+  return g;
+}
+function turretTooltip(type) {
+  const b = TOWERS[type];
+  const lines = [
+    b.name + (b.mythic ? " · mythic (crate drop only)" : " · armory rank " + b.rank),
+    b.desc,
+    "Damage " + b.dmg + " · Range " + Math.round(b.range) + " · " + fmtRate(b.rate),
+    "Special: " + b.special.name + (b.special.desc ? " — " + b.special.desc : ""),
+    "Builds for " + b.cost + " gold in a run" + (b.mythic ? " once unlocked." : ".")
+  ];
+  return lines.join("\n");
 }
 
 /* ------------------------------ collectibles ------------------------------ */
@@ -4143,12 +4305,20 @@ const COSMETIC_CATS = [
 
 /* ------------------------- supply crates & chests ------------------------- */
 // Mythic drops stay under 1% on both crate types, by design.
+// Four tiers, steep price tags, and mythic odds still tiny on the cheap two.
 const CRATES = {
-  supply: { name: "Supply Crate", glyph: "📦", gems: 3, desc: "3 💎, or free from every boss wave",
+  supply: { name: "Supply Crate", glyph: "📦", gems: 6, tier: 1,
+    desc: "6 💎, or free from every boss wave",
     odds: { common: 55, rare: 29, epic: 13.6, legendary: 2.0, mythic: 0.4 } },
-  royal:  { name: "Royal Chest",  glyph: "🎁", gems: 6, desc: "buy with gems",
-    odds: { common: 30, rare: 38, epic: 24, legendary: 7.1, mythic: 0.9 } }
+  royal:  { name: "Royal Chest",  glyph: "🎁", gems: 18, tier: 2, desc: "no commons at all",
+    odds: { common: 30, rare: 38, epic: 24, legendary: 7.1, mythic: 0.9 } },
+  admiral: { name: "Admiral's Vault", glyph: "⚜️", gems: 45, tier: 4, desc: "rare or better, every time",
+    odds: { common: 0, rare: 26, epic: 46, legendary: 26.5, mythic: 1.5 } },
+  reliquary: { name: "Mythic Reliquary", glyph: "🔮", gems: 120, tier: 5, desc: "epic floor · the only real mythic odds",
+    odds: { common: 0, rare: 0, epic: 34, legendary: 62, mythic: 4 } }
 };
+function cratesHeld() { let n = 0; Object.keys(CRATES).forEach(k => { n += G.crates[k] || 0; }); return n; }
+const CRATE_ORDER = ["supply", "royal", "admiral", "reliquary"];
 const CRATE_REFUND = { common: 1, rare: 2, epic: 3, legendary: 6, mythic: 0 };
 function pickRarity(odds) {
   let total = 0;
@@ -4227,8 +4397,8 @@ function currentOptions() {
   const val = id => { const e = document.getElementById(id); return e ? e.checked : undefined; };
   const diff = document.getElementById("diff");
   return {
-    auto: val("auto"), grid: val("grid"), ranges: val("ranges"), endless: val("endless"),
-    muted: val("muted"), shake: val("shake"), diff: diff ? diff.value : "normal"
+    auto: val("auto"), grid: val("grid"), ranges: val("ranges"),
+    muted: val("muted"), diff: "siege"
   };
 }
 function saveGame(force) {
@@ -4243,7 +4413,7 @@ function saveGame(force) {
     owner: authNow.mode === "account" ? authNow.current : "solo",
     wallet: { gems: G.gems, earned: G.gemsEarned },
     cos: { own: G.cosOwn, env: G.cos.env, fleet: G.cos.fleet, wrap: G.cos.wrap, banner: G.cos.banner, fx: G.cos.fx },
-    crates: { supply: G.crates.supply || 0, royal: G.crates.royal || 0 },
+    crates: (function () { const c = {}; Object.keys(CRATES).forEach(k => { c[k] = G.crates[k] || 0; }); return c; })(),
     options: opts,
     stats: { runs: G.runsPlayed || 0 },
     run: null
@@ -4252,7 +4422,8 @@ function saveGame(force) {
   // before the first wave and reloading should not wipe them
   if (!G.over && (G.wave >= 1 || G.towers.length)) {
     blob.run = {
-      diff: G.diff, endless: G.endless, gold: Math.floor(G.gold), lives: G.lives, wave: G.wave,
+      diff: G.diff, baseMax: G.baseMax, repairs: G.repairs || 0, phase: G.phase || "build",
+      gold: Math.floor(G.gold), lives: G.lives, wave: G.wave,
       kills: G.kills, leaked: G.leaked, totalGold: Math.floor(G.totalGold), runGems: G.runGems,
       globals: Object.assign({}, G.globals), repairs: G.repairs,
       towers: G.towers.map(t => ({ type: t.type, x: t.x, y: t.y, tier: t.tier, mode: t.mode || "first",
@@ -4264,10 +4435,12 @@ function saveGame(force) {
   return blob;
 }
 function applySavedRun(run) {
-  G.diff = run.diff || "normal";
-  G.endless = !!run.endless;
+  G.diff = "siege";
+  G.baseMax = run.baseMax || DIFFICULTY[G.diff].lives;
+  G.repairs = run.repairs || 0;
+  G.phase = run.phase || "build";
   G.gold = run.gold || 0;
-  G.lives = run.lives != null ? run.lives : DIFFICULTY[G.diff].lives;
+  G.lives = run.lives != null ? Math.min(run.lives, G.baseMax) : G.baseMax;
   G.wave = run.wave || 0;
   G.kills = run.kills || 0;
   G.leaked = run.leaked || 0;
@@ -4325,7 +4498,7 @@ function recordRun() {
   if (G.recorded || G.wave < 1) return null;
   G.recorded = true;
   const entry = {
-    at: Date.now(), diff: G.diff, endless: G.endless,
+    at: Date.now(), diff: G.diff, repairs: G.repairs || 0,
     wave: G.wave, cleared: Math.max(0, G.wave - (G.waveActive ? 1 : 0)),
     gold: Math.floor(G.totalGold), gems: G.runGems, kills: G.kills, breaches: G.leaked,
     towers: G.towers.length, lives: Math.max(0, G.lives), won: !!G.won,
@@ -4547,7 +4720,7 @@ function renderBoardOverlay() {
     tr.appendChild(el("td", null, String(r.breaches)));
     const best = Object.entries(r.byTower || {}).sort((a, b) => b[1] - a[1])[0];
     tr.appendChild(el("td", null, best ? TOWERS[best[0]].glyph + " " + TOWERS[best[0]].name + " (" + best[1] + ")" : "—"));
-    tr.appendChild(el("td", null, (DIFFICULTY[r.diff] ? DIFFICULTY[r.diff].label : r.diff) + (r.endless ? " · endless" : "")));
+    tr.appendChild(el("td", null, "Siege" + (r.repairs ? " · " + r.repairs + " repairs" : "")));
     tr.appendChild(el("td", null, fmtWhen(r.at)));
     t.appendChild(tr);
   });
@@ -4562,7 +4735,7 @@ function showBoard(on) {
 }
 
 /* ------------------------------- inventory -------------------------------- */
-let invTab = "env";
+// (the old per-category tab strip is gone - invCat/invFilter/invSort drive the view)
 function cosSwatch(cat, id) {
   if (cat === "env") { const e = ENVIRONMENTS[id]; return "linear-gradient(135deg," + e.land.grass[0] + " 0 45%," + e.water[1] + " 45% 100%)"; }
   if (cat === "fleet") { const f = FLEETS[id].types; return "linear-gradient(135deg," + f.galleon.deck + "," + f.skiff.dark + " 60%," + f.boss.dark + ")"; }
@@ -4625,7 +4798,7 @@ function buyOrEquip(cat, id) {
 // Both crate types roll a rarity first, then an *unowned* item of that rarity from
 // every collectible in the game (mythic turret cards included). Mythic odds stay
 // under 1%. A full set refunds gems for the duplicate instead.
-function rollCrate(kind) {
+function rollCrate(kind, silent) {
   const crate = CRATES[kind];
   if (!crate) return null;
   const have = G.crates[kind] || 0;
@@ -4665,19 +4838,88 @@ function rollCrate(kind) {
     if (pick.cat === "turret") { renderArmory(); setTimeout(() => sfx("boss"), 260); }
   }
   G.lastDrop = { cat: pick.cat, id: pick.id, r: rar, dup: duplicate, at: Date.now() };
-  banner(crate.glyph + " " + pick.item.name + (rar === "mythic" ? " — MYTHIC!" : ""), rr.col);
-  toast(crate.glyph + " " + crate.name + " opened → " + detail);
-  if (!duplicate) sfx(rar === "mythic" || rar === "legendary" ? "win" : "gem");
-  sfx("coin");
   queueSave();
-  ui();
-  renderInventory();
+  const announce = () => {
+    banner(crate.glyph + " " + pick.item.name + (rar === "mythic" ? " — MYTHIC!" : ""), rr.col);
+    toast(crate.glyph + " " + crate.name + " opened → " + detail);
+    if (!duplicate) sfx(rar === "mythic" || rar === "legendary" ? "win" : "gem");
+    sfx("coin");
+    ui();
+    renderInventory();
+  };
+  // one crate at a time gets the rolling animation; bulk opens just report
+  if (silent || rolling) { announce(); return pick; }
+  playRoll(pick, crate, duplicate, announce);
   return pick;
+}
+// The rolling animation: a spray of possible drops that settles on the real one.
+let rolling = false;
+function playRoll(pick, crate, duplicate, done) {
+  const host = document.getElementById("roll");
+  const card = document.getElementById("roll-card");
+  const label = document.getElementById("roll-label");
+  const reveal = () => {
+    if (card) {
+      card.textContent = pick.item.glyph || "🎁";
+      card.className = "roll-card win r-" + (pick.item.r || "common");
+    }
+    if (label) {
+      label.textContent = rarityOf(pick.item).name + " · " + pick.item.name +
+        (duplicate ? " (duplicate)" : " · +" + itemWorth(pick.item) + " pts");
+    }
+    sfx(pick.item.r === "mythic" || pick.item.r === "legendary" ? "win" : "gem");
+  };
+  if (!host || !card) { reveal(); setTimeout(done, 900); return; }
+  rolling = true;
+  const pool = [];
+  RARITY_ORDER.forEach(r => cratePool(r).forEach(x => pool.push(x)));
+  if (label) label.textContent = crate.glyph + " " + crate.name + " — rolling…";
+  host.classList.add("on");
+  const landed = () => {
+    reveal();
+    setTimeout(() => {
+      host.classList.remove("on");
+      rolling = false;
+      done();
+    }, 1200);
+  };
+  // Wall-clock, frame-driven. A tick-counting setInterval stalls on a throttled or
+  // hidden page and the overlay would stay up (the drop is already in the hold).
+  const started = Date.now();
+  const SPIN = 1500, HOLD = 1400;
+  const spray = () => {
+    const it = pool[(Math.random() * pool.length) | 0];
+    if (it) {
+      card.textContent = it.item.glyph || "🎁";
+      card.className = "roll-card spin r-" + (it.item.r || "common");
+    }
+  };
+  const frame = () => {
+    if (Date.now() - started >= SPIN) {
+      clearInterval(safety);
+      landed();
+      return;
+    }
+    spray();
+    requestAnimationFrame(frame);
+  };
+  const safety = setInterval(spray, 90);        // keeps spinning if rAF is throttled
+  setTimeout(() => {                            // and never leave the overlay stuck
+    if (rolling && Date.now() - started >= SPIN + HOLD) {
+      clearInterval(safety);
+      host.classList.remove("on");
+      rolling = false;
+      reveal();
+      done();
+    }
+  }, SPIN + HOLD + 200);
+  requestAnimationFrame(frame);
 }
 function renderCrates(body) {
   const grid = el("div", "crate-grid");
-  Object.entries(CRATES).forEach(([kind, crate]) => {
-    const card = el("div", "crate-card" + (kind === "royal" ? " royal" : ""));
+  CRATE_ORDER.forEach(kind => {
+    const crate = CRATES[kind];
+    const card = el("div", "crate-card t" + (crate.tier || 1) + (kind === "royal" ? " royal" : ""));
     card.appendChild(el("div", "crate-glyph", crate.glyph));
     const meta = el("div", "crate-meta");
     meta.appendChild(el("b", null, crate.name));
@@ -4693,14 +4935,15 @@ function renderCrates(body) {
     grid.appendChild(card);
   });
   body.appendChild(grid);
-  const held = (G.crates.supply || 0) + (G.crates.royal || 0);
+  const held = cratesHeld();
   if (held > 1) {
     const row = el("div", "inv-bar-row");
     const all = el("button", "pick on", "Open all " + held + " crates in the hold");
     all.onclick = () => {
       let n = 0;
-      while (((G.crates.supply || 0) + (G.crates.royal || 0)) > 0 && n < 20) {
-        rollCrate((G.crates.supply || 0) > 0 ? "supply" : "royal");
+      while (cratesHeld() > 0 && n < 20) {
+        const kind = CRATE_ORDER.slice().reverse().find(k => (G.crates[k] || 0) > 0) || "supply";
+        rollCrate(kind, true);
         n++;
       }
       if (n) toast("Opened " + n + " crates.");
@@ -4716,8 +4959,9 @@ function renderCrates(body) {
   });
   body.appendChild(worths);
   const note = el("div", "crate-note",
-    "Mythic turret cards are under 1% from both crate types. Supply Crates drop from every boss wave. " +
-    "Duplicates refund gems, so a crate is never wasted.");
+    "Mythic turret cards stay under 1% on the Supply Crate and Royal Chest; the Admiral's Vault and the " +
+    "Mythic Reliquary are the only places the odds really move. Supply Crates still drop from boss waves, " +
+    "and duplicates refund gems, so a crate is never wasted.");
   body.appendChild(note);
   const last = G.lastDrop;
   if (last) {
@@ -4735,7 +4979,8 @@ function renderCrates(body) {
 }
 /* ---- inventory options: filter, sort, category value, bulk unlock ---------- */
 let invFilter = "all";      // all | locked | owned
-let invSort = "value";      // value | rarity | name
+let invSort = "rarity";     // rarity (rarest first) | value | name
+let invCat = "all";         // all | <category id> | crate
 function invItems(cat) {
   let list = Object.entries(cat.items);
   if (invFilter === "locked") list = list.filter(([id]) => !unlocked(cat.id, id));
@@ -4743,7 +4988,7 @@ function invItems(cat) {
   const rank = id => RARITY_ORDER.indexOf(cat.items[id].r || "common");
   const sorters = {
     value: (a, b) => itemWorth(b[1]) - itemWorth(a[1]),
-    rarity: (a, b) => rank(a[0]) - rank(b[0]),
+    rarity: (a, b) => rank(b[0]) - rank(a[0]),      // Mythic first, Common last
     name: (a, b) => a[1].name.localeCompare(b[1].name)
   };
   return list.sort((a, b) => sorters[invSort](a, b) || (unlocked(cat.id, b[0]) - unlocked(cat.id, a[0])));
@@ -4770,20 +5015,6 @@ function renderInvBar(body, cat) {
   const pts = Object.entries(cat.items).reduce((s, [id, it]) => s + (unlocked(cat.id, id) ? itemWorth(it) : 0), 0);
   const max = Object.entries(cat.items).reduce((s, [, it]) => s + itemWorth(it), 0);
   const bar = el("div", "inv-bar");
-  const eq = el("div", "inv-bar-row");
-  eq.appendChild(el("span", "inv-bar-label", "Show"));
-  ["all", "locked", "owned"].forEach(f => {
-    const b = el("button", "pick" + (invFilter === f ? " on" : ""), f === "all" ? "All" : f === "locked" ? "Locked" : "Owned");
-    b.onclick = () => { invFilter = f; renderInventory(); };
-    eq.appendChild(b);
-  });
-  eq.appendChild(el("span", "inv-bar-label", "Sort"));
-  [["value", "Value"], ["rarity", "Rarity"], ["name", "Name"]].forEach(([s, label]) => {
-    const b = el("button", "pick" + (invSort === s ? " on" : ""), label);
-    b.onclick = () => { invSort = s; renderInventory(); };
-    eq.appendChild(b);
-  });
-  bar.appendChild(eq);
   const info = el("div", "inv-bar-row");
   info.appendChild(el("span", "inv-cat", "This category: " + own + "/" + total + " owned · ⭐ " +
     fmtNum(pts) + " of " + fmtNum(max) + " pts (" + Math.round((pts / (max || 1)) * 100) + "%)"));
@@ -4819,27 +5050,54 @@ function renderInvBar(body, cat) {
   bar.appendChild(legend);
   body.appendChild(bar);
 }
+function fillSelect(id, pairs, value) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  sel.textContent = "";
+  pairs.forEach(pair => {
+    const o = document.createElement("option");
+    o.value = pair[0];
+    o.textContent = pair[1];
+    sel.appendChild(o);
+  });
+  sel.value = value;
+}
+// One list, not tabs: pick a category from the dropdown and everything is sorted
+// rarest-first by default.
 function renderInventory() {
   document.getElementById("inv-wallet").textContent = "💎 " + G.gems + " gems";
   const c = cosCount();
-  const crates = (G.crates.supply || 0) + (G.crates.royal || 0);
+  const crates = cratesHeld();
   document.getElementById("inv-sub").textContent =
     c.own + " of " + c.total + " collectibles · ⭐ " + fmtNum(worthTotal()) + " worth points · " +
     G.gems + " gems to spend · " + crates + " crate" + (crates === 1 ? "" : "s");
-  const tabs = document.getElementById("inv-tabs");
-  tabs.textContent = "";
-  const tabDefs = COSMETIC_CATS.concat([{ id: "crate", label: "🎁 Crates" }]);
-  tabDefs.forEach(cat => {
-    const label = cat.id === "crate" && crates ? cat.label + " (" + crates + ")" : cat.label;
-    const b = el("button", "tab" + (invTab === cat.id ? " on" : ""), label);
-    b.onclick = () => { invTab = cat.id; renderInventory(); };
-    tabs.appendChild(b);
-  });
+  fillSelect("inv-cat",
+    [["all", "All categories"]].concat(COSMETIC_CATS.map(cat => [cat.id, cat.label]))
+      .concat([["crate", crates ? "🎁 Crates (" + crates + ")" : "🎁 Crates"]]), invCat);
+  fillSelect("inv-filter", [["all", "All items"], ["owned", "Owned only"], ["locked", "Not yet owned"]], invFilter);
+  fillSelect("inv-sort", [["rarity", "Rarity (Mythic → Common)"], ["value", "Worth points"],
+    ["name", "Name"]], invSort);
+  const bind = (id, fn) => { const e = document.getElementById(id); if (e) e.onchange = fn; };
+  bind("inv-cat", e => { invCat = e.target.value; renderInventory(); });
+  bind("inv-filter", e => { invFilter = e.target.value; renderInventory(); });
+  bind("inv-sort", e => { invSort = e.target.value; renderInventory(); });
   const body = document.getElementById("inv-body");
   body.textContent = "";
-  if (invTab === "crate") { renderCrates(body); return; }
-  const cat = COSMETIC_CATS.find(x => x.id === invTab) || COSMETIC_CATS[0];
+  if (invCat === "crate") { renderCrates(body); return; }
+  if (invCat === "all") {
+    COSMETIC_CATS.forEach(cat => {
+      body.appendChild(el("div", "sect2", cat.label));
+      renderInvBar(body, cat);
+      body.appendChild(cosGrid(cat));
+    });
+    return;
+  }
+  const cat = COSMETIC_CATS.find(x => x.id === invCat) || COSMETIC_CATS[0];
   renderInvBar(body, cat);
+  body.appendChild(cosGrid(cat));
+}
+// One category's cards (rarest first), including sealed crate-only mythics.
+function cosGrid(cat) {
   const grid = el("div", "cos-grid");
   for (const [id, item] of invItems(cat)) {
     if (item.crateOnly && !unlocked(cat.id, id)) { grid.appendChild(sealedCard(cat, id, item)); continue; }
@@ -4872,7 +5130,7 @@ function renderInventory() {
     card.appendChild(btn);
     grid.appendChild(card);
   }
-  body.appendChild(grid);
+  return grid;
 }
 function showInv(on) {
   const visible = on !== false;
@@ -5090,10 +5348,7 @@ function ui() {
     btn.disabled = lvl >= max || G.gold < globalCost(k, lvl);
     btn.querySelector("b").textContent = lvl + "/" + max;
   }
-  const rb = document.getElementById("g-repair");
-  const rcost = 900 + 600 * (G.repairs || 0);
-  rb.textContent = "🛠 +2 Lives · " + rcost + "🪙";
-  rb.disabled = G.gold < rcost;
+  renderRepairPanel();
   const nw = document.getElementById("next-wave");
   nw.disabled = G.waveActive || G.over;
   nw.textContent = G.waveActive ? "⚔ Wave " + G.wave + " in progress…" : "▶ Start Wave " + (G.wave + 1);
@@ -5123,7 +5378,7 @@ function endGame(won) {
     "<br>Waves: <b>" + G.wave + "</b> · 💎 Gems: <b>" + G.runGems + "</b> · Sunk: <b>" + G.kills +
     "</b> · Breaches: <b>" + G.leaked + "</b> · Gold earned: <b>" + Math.floor(G.totalGold) + "</b>" +
     "<br>Turrets: <b>" + G.towers.length + "</b> · Difficulty: <b>" + DIFFICULTY[G.diff].label +
-    "</b>" + (G.endless ? " · <b>Endless</b>" : "") +
+
     "<br>Top guns: <b>" + killers + "</b>" +
     (entry ? "<br><b style='color:#57e08a'>" +
       (no1 ? "🏆 NEW RECORD — rank #1 on highest wave!" :
@@ -5214,13 +5469,8 @@ document.getElementById("btn-rush").onclick = () => { G.speed = G.speed === 1 ? 
 document.getElementById("auto").onchange = e => { G.auto = e.target.checked; toast("Auto-start " + (G.auto ? "enabled" : "disabled") + "."); };
 document.getElementById("grid").onchange = e => { G.showGrid = e.target.checked; };
 document.getElementById("ranges").onchange = e => { G.showRanges = e.target.checked; };
-document.getElementById("endless").onchange = e => {
-  G.endless = e.target.checked;
-  toast(G.endless ? "Endless mode: breaches no longer cost lives." : "Endless mode off — lives count again.");
-  ui();
-};
+document.getElementById("repair-btn").onclick = () => buyRepair();
 document.getElementById("muted").onchange = e => { Audio_.muted = e.target.checked; };
-document.getElementById("shake").onchange = e => { G.shakeAmp = e.target.checked; if (!G.shakeAmp) G.shake = 0; };
 // Difficulty. Ships already at sea keep their stats, but the player must be able to
 // *see* the change: on a run that hasn't started yet the new difficulty's gold and
 // lives are applied straight away, and the wave purse follows the difficulty too.
@@ -5232,21 +5482,45 @@ function applyDifficultyEconomy() {
   G.lives = d.lives;
   return true;
 }
-document.getElementById("diff").onchange = e => {
-  G.diff = e.target.value;
-  const d = DIFFICULTY[G.diff];
-  const fresh = applyDifficultyEconomy();
+function buyRepair() {
+  if (G.over || G.waveActive) return;
+  const cost = repairCost();
+  if (G.lives >= G.baseMax) { sfx("deny"); toast("The harbour hull is already at full strength."); return; }
+  if (G.gold < cost) { sfx("deny"); toast("Need " + Math.ceil(cost - G.gold) + " more gold to repair the hull."); return; }
+  G.gold -= cost;
+  G.repairs = (G.repairs || 0) + 1;
+  G.lives = Math.min(G.baseMax, G.lives + REPAIR_HP);
   sfx("coin");
-  banner("Difficulty · " + d.label, "#8fd6ff");
-  toast(fresh
-    ? "Difficulty → " + d.label + ": " + d.startGold + " 🪙 and " + d.lives + " lives, and the fleet is " +
-      (d.hp > 1 ? "tougher" : d.hp < 1 ? "softer" : "unchanged") + " (×" + d.hp.toFixed(2) + " hp, ×" +
-      d.gold.toFixed(2) + " gold)."
-    : "Difficulty → " + d.label + ": ships spawning from now on use ×" + d.hp.toFixed(2) + " hp, ×" +
-      d.gold.toFixed(2) + " gold. Your current run keeps its " + G.gold + " 🪙 and " + G.lives +
-      " lives — press Play Again for a fresh " + d.startGold + " 🪙 / " + d.lives + " lives start.");
-  ui();
-};
+  banner("+" + REPAIR_HP + " hull", "#8ee6b0");
+  floatText(BASE[0], BASE[1] - 70, "+" + REPAIR_HP + " hull", "#8ee6b0");
+  toast("Hull repaired to " + G.lives + "/" + G.baseMax + " for " + cost + " gold. Next repair costs more.");
+  queueSave(); ui();
+}
+function renderRepairPanel() {
+  const panel = document.getElementById("repair-panel");
+  if (!panel) return;
+  const open = G.phase === "repair" && !G.over && !G.waveActive && G.wave > 0;
+  panel.hidden = !open;
+  if (!open) return;
+  const cost = repairCost();
+  const full = G.lives >= G.baseMax;
+  const live = document.getElementById("rep-live");
+  if (live) live.textContent = "hull " + G.lives + "/" + G.baseMax + " · repair #" + ((G.repairs || 0) + 1);
+  const btn = document.getElementById("repair-btn");
+  if (btn) {
+    btn.textContent = full ? "Hull at full strength" : "Repair +" + REPAIR_HP + " HP · " + cost + " 🪙";
+    btn.disabled = full || G.gold < cost;
+  }
+  const hint = document.getElementById("repair-hint");
+  if (hint) {
+    hint.textContent = full
+      ? "Nothing to patch — spend the gold on guns instead."
+      : (G.gold < cost
+          ? "Not enough gold. This window is the only time you can repair."
+          : "Every repair costs more than the last, and the price climbs with the wave. Choose.");
+  }
+}
+
 document.getElementById("over-btn").onclick = () => {
   document.getElementById("over").classList.remove("on");
   newGame(); ui();
@@ -5448,11 +5722,13 @@ window.SeaSiege = Object.freeze({
     gold: Math.floor(G.gold), lives: G.lives, wave: G.wave, towers: G.towers.length,
     enemies: G.enemies.length, kills: G.kills, leaked: G.leaked, waveActive: G.waveActive,
     over: G.over, won: G.won, projectiles: G.projectiles.length, particles: G.parts.length,
-    fires: G.fires.length, paused: G.paused, speed: G.speed, diff: G.diff, endless: G.endless,
+    fires: G.fires.length, paused: G.paused, speed: G.speed, diff: G.diff,
+    baseMax: G.baseMax, phase: G.phase, repairs: G.repairs || 0,
     gems: G.gems, boardTab: boardTab, boardOpen: document.getElementById("board").classList.contains("on"),
     gemsEarned: G.gemsEarned, runGems: G.runGems, runsPlayed: G.runsPlayed,
     cos: Object.assign({}, G.cos), owned: cosCount().own, ownedTotal: cosCount().total,
-    invOpen: document.getElementById("inv").classList.contains("on"), invTab: invTab,
+    invOpen: document.getElementById("inv").classList.contains("on"), invCat: invCat,
+    invFilter: invFilter, invSort: invSort,
     saveExists: !!readSave(), weather: G.weather.length, envWeather: envNow().weather,
     authMode: (readAuth() || {}).mode || null,
     authName: (activeAccount() || {}).name || null,

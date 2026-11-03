@@ -255,6 +255,18 @@ class Hub:
 HUB = Hub()
 
 
+# --- trading rules (generated from index.html by tools/gen_trade_rarity.py)
+# item key -> rarity, used to keep basic starter gear out of trades.
+RARITY_RANK = {"common": 0, "rare": 1, "epic": 2, "legendary": 3, "mythic": 4}
+TRADE_RARITY = {"banner:harbour": "common", "banner:kraken": "rare", "banner:royal": "legendary", "banner:sunfire": "rare", "banner:verdant": "epic", "env:dawn": "common", "env:frozen": "epic", "env:midnight": "rare", "env:storm": "epic", "env:sunset": "rare", "env:volcanic": "legendary", "fleet:crimson": "rare", "fleet:ghost": "epic", "fleet:jade": "legendary", "fleet:royal": "common", "fx:ember": "epic", "fx:gilded": "rare", "fx:prism": "legendary", "fx:standard": "common", "turret:kraken": "mythic", "turret:leviathan": "mythic", "turret:sunfire": "mythic", "turret:trident": "mythic", "wrap:aurora": "legendary", "wrap:bare": "common", "wrap:brass": "rare", "wrap:coral": "epic", "wrap:obsidian": "rare", "wrap:verdant": "epic"}
+
+def tradeable(item_id: str) -> bool:
+    """Rare and above only - sprats and starter skins never change hands."""
+    return RARITY_RANK.get(TRADE_RARITY.get(str(item_id), ""), -1) >= RARITY_RANK["rare"]
+
+# --- end trading rules
+
+
 # ----------------------------------------------------------------- accounts
 def decode_jwt_claims(token: str) -> dict | None:
     """Read a JWT's claims WITHOUT checking the signature (dev fallback only)."""
@@ -682,6 +694,13 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
             if not isinstance(items, list):
                 items = []
             items = [str(i)[:64] for i in items][:OFFER_SLOTS]
+            # The hub refuses basic gear outright: Rare and above only.
+            blocked = [i for i in items if not tradeable(i)]
+            if blocked:
+                msg = ("only Rare and above can be traded - " +
+                       ", ".join(blocked[:3]) + " cannot change hands")
+                print(f"  x trade-offer refused from {me['name']}: {blocked[:3]}", flush=True)
+                return self._json({"ok": False, "error": msg}, 400)
             locked = bool(payload.get("locked"))
             worth = max(0, int(payload.get("worth") or 0))
             mine = trade["offers"][me["id"]]

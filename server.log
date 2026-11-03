@@ -2,13 +2,12 @@
   SEA SIEGE TOWER DEFENSE
 ==================================================================
   serving : C:\Users\teddy\Desktop\Tower defense game
-  accounts: C:\Users\teddy\Desktop\Tower defense game\accounts.json (0 saved)
+  accounts: C:\Users\teddy\Desktop\Tower defense game\accounts.json (1 saved)
 Server starting on port 8000 (with ngrok)
   local   : http://localhost:8000/
   lan     : http://<your-ip>:8000/
   hub     : /api/events (SSE) - /api/join - /api/signal - /api/players
 [ngrok] using the authtoken stored in C:\Users\teddy\AppData\Local\ngrok\ngrok.yml
-  · 127.0.0.1 - "GET /api/events?id=5d7e50cf54bf3369&token=52fe02931a5e61e102637ea4be04c970 HTTP/1.1" 403 -
 [ngrok] note: could not write the token (PyngrokNgrokError) - continuing with the agent's existing configuration
   PUBLIC  : https://diagram-emboss-griminess.ngrok-free.dev
             ^ share this HTTPS link (may show an ngrok interstitial first)
@@ -16,114 +15,4 @@ Server starting on port 8000 (with ngrok)
 ==================================================================
   Ctrl+C to stop.
 
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 403 -
-  · 127.0.0.1 - "GET /api/health HTTP/1.1" 200 -
-  + online: AutoSync_Test (local) worth 50 - 1 player(s)
-  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET /api/events?id=29b4d61370b904b9&token=4ae0ea6eda956721e5567d66dd7a0a78 HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/save HTTP/1.1" 401 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET /api/events?id=29b4d61370b904b9&token=4ae0ea6eda956721e5567d66dd7a0a78 HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/save HTTP/1.1" 401 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
-  + online: Teddy Hughes (remote) worth 50 - 2 player(s)
-  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET /api/events?id=75ef2bbfa8a9a121&token=bd4c1fc83eb0bc29ab7fb2bcd3899e09 HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
-  + online: Teddy Hughes (remote) worth 50 - 3 player(s)
-  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET /api/events?id=907a48343896484c&token=8d5b6228148d409652d17f98fd9b6353 HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - code 404, message File not found
-  · 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  - offline: Teddy Hughes
-  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/save HTTP/1.1" 401 -
-  - timed out: Teddy Hughes
-  · 127.0.0.1 - "POST /api/account/login HTTP/1.1" 400 -
-  · 127.0.0.1 - "POST /api/account/login HTTP/1.1" 400 -
-  + account google:108277884453588925015 (no username yet) - 1 account(s)
-  · 127.0.0.1 - "POST /api/account/google HTTP/1.1" 200 -
-  - timed out: AutoSync_Test
-  · 127.0.0.1 - "POST /api/account/username HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/save HTTP/1.1" 200 -
-  · 127.0.0.1 - code 404, message File not found
-  · 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
-  · 127.0.0.1 - "POST /api/account/save HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/save HTTP/1.1" 200 -
-  + online: Teddy (remote) worth 50 - 1 player(s)
-  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET /api/events?id=c47515e75a56bca9&token=be55a06cc025f685c1fd12c477e439a6 HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - code 404, message File not found
-  · 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/save HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET /api/events?id=c47515e75a56bca9&token=be55a06cc025f685c1fd12c477e439a6 HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/save HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  - offline: Teddy
-  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/logout HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/save HTTP/1.1" 401 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/login HTTP/1.1" 400 -
-  · 127.0.0.1 - "POST /api/account/login HTTP/1.1" 400 -
-  · 127.0.0.1 - "POST /api/account/login HTTP/1.1" 400 -
-  · 127.0.0.1 - "POST /api/account/login HTTP/1.1" 400 -
-  · 127.0.0.1 - "POST /api/account/login HTTP/1.1" 400 -
-  · 127.0.0.1 - "POST /api/account/login HTTP/1.1" 400 -
-  = account google:108277884453588925015 (Teddy) - 1 account(s)
-  · 127.0.0.1 - "POST /api/account/google HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/save HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/save HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/save HTTP/1.1" 200 -
-  + online: Teddy (remote) worth 50 - 1 player(s)
-  · 127.0.0.1 - "POST /api/join HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET /api/events?id=677c488b35848ba8&token=8f0716819ff556556493d09e620b40e6 HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/save HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET /api/events?id=677c488b35848ba8&token=8f0716819ff556556493d09e620b40e6 HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/ping HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/save HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/save HTTP/1.1" 200 -
-  - offline: Teddy
-  · 127.0.0.1 - "POST /api/leave HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/save HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
-  · 127.0.0.1 - code 404, message File not found
-  · 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
-  · 127.0.0.1 - "POST /api/account/login HTTP/1.1" 400 -
-  · 127.0.0.1 - "POST /api/account/login HTTP/1.1" 400 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET /api/health HTTP/1.1" 200 -
   · 127.0.0.1 - "GET /api/health HTTP/1.1" 200 -
