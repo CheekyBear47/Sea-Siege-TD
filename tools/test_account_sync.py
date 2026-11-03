@@ -215,6 +215,79 @@ def main() -> int:
               st == 200 and j["account"]["id"] == "google:sub-A" and j["account"]["save"]["gems"] == 42,
               str(j)[:110])
 
+        # ------------------------------------------------- two devices, newest wins
+        print("\n[10] the same account on two devices at once - newest profile wins")
+        newer = dict(save, at=2_000_000_000_000, gems=99, run={"wave": 22, "gold": 9999})
+        st, j = post(base, "/api/account/save", {"token": tok_b, "save": newer,
+                                                 "boards": [{"wave": 22}], "stats": {"bestWave": 22}})
+        check("fresh push accepted", st == 200 and j.get("stale") is False, str(j)[:90])
+        st, j = post(base, "/api/account/session", {"token": tok_a})
+        check("device A now sees device B's progress",
+              j["account"]["save"]["gems"] == 99 and (j["account"]["save"].get("run") or {}).get("wave") == 22,
+              str(j["account"]["save"])[:90])
+
+        older = dict(save, at=1_000_000_000_000, gems=1, run={"wave": 2})
+        st, j = post(base, "/api/account/save", {"token": tok_a, "save": older,
+                                                 "boards": [], "stats": {"bestWave": 2}})
+        check("stale push flagged (stale: true)", st == 200 and j.get("stale") is True, str(j)[:90])
+        check("stale push did not regress gems", j["account"]["save"]["gems"] == 99,
+              str(j["account"]["save"])[:90])
+        check("stale push did not regress the boards",
+              (j["account"].get("boards") or [{}])[0].get("wave") == 22, str(j["account"].get("boards")))
+
+        newest = dict(save, at=3_000_000_000_000, gems=123)
+        st, j = post(base, "/api/account/save", {"token": tok_a, "save": newest,
+                                                 "boards": [{"wave": 33}], "stats": {"bestWave": 33}})
+        check("a later push wins again",
+              st == 200 and j.get("stale") is False and j["account"]["save"]["gems"] == 123, str(j)[:90])
+        # a third machine, signing in from a new IP, must land on the newest profile
+        st, j = post(base, "/api/account/google",
+                     {"credential": fake_google_token("sub-A", "iron@example.com", "Iron Fisher")},
+                     headers={"X-Forwarded-For": "198.51.100.7"})
+        check("a third device signing in with Google loads the newest profile",
+              j["account"]["save"]["gems"] == 123
+              and (j["account"].get("boards") or [{}])[0].get("wave") == 33,
+              str(j["account"]["save"])[:90])
+        check("and it is the same account, not a fresh one",
+              j["account"]["id"] == "google:sub-A" and j["created"] is False, str(j)[:80])
+
+        st, j = post(base, "/api/account/login", {"username": "CaptainSalty", "password": "hunter2hunter"})
+        check("the separate local account keeps its own profile", j["account"]["save"]["gems"] == 9,
+              str(j["account"]["save"])[:90])
+
+        st, j = post(base, "/api/account/save", {"token": tok_a, "save": {"gems": 7},
+                                                 "boards": [], "stats": None})
+        check("an unstamped blob cannot clobber a newer one", st == 200 and j.get("stale") is True,
+              str(j)[:90])
+        st, j = post(base, "/api/account/save", {"token": tok_c, "save": {"gems": 5},
+                                                 "boards": [], "stats": None})
+        check("a first write with no stamp is still accepted", st == 200 and j.get("stale") is False,
+              str(j)[:90])
+
+        # ---------------------------------------- revision-based concurrency
+        print("\n[11] a stale tab cannot win on a fresh timestamp")
+        st, j = post(base, "/api/account/session", {"token": tok_b})
+        rev_b = j["account"]["rev"]
+        check("the session carries a revision", isinstance(rev_b, int) and rev_b > 0, str(rev_b))
+        st, j = post(base, "/api/account/save", {"token": tok_b, "baseRev": rev_b,
+                                                 "save": dict(save, at=4_000_000_000_000, gems=200),
+                                                 "boards": [{"wave": 40}], "stats": {"bestWave": 40}})
+        check("a push based on the current revision is accepted",
+              st == 200 and j.get("stale") is False and j["account"]["rev"] == rev_b + 1, str(j)[:90])
+        st, j = post(base, "/api/account/save", {"token": tok_a, "baseRev": rev_b,
+                                                 "save": dict(save, at=9_000_000_000_000, gems=3),
+                                                 "boards": [], "stats": {"bestWave": 3}})
+        check("a NEWER timestamp cannot beat an older revision",
+              st == 200 and j.get("stale") is True, str(j)[:110])
+        check("the newer profile survived intact",
+              j["account"]["save"]["gems"] == 200
+              and (j["account"].get("boards") or [{}])[0].get("wave") == 40, str(j["account"]["save"])[:80])
+        st, j = post(base, "/api/account/save", {"token": tok_a, "baseRev": j["account"]["rev"],
+                                                 "save": dict(save, at=9_000_000_000_000, gems=250),
+                                                 "boards": [{"wave": 55}], "stats": {"bestWave": 55}})
+        check("adopting the revision unblocks the device",
+              st == 200 and j.get("stale") is False and j["account"]["save"]["gems"] == 250, str(j)[:90])
+
     finally:
         try:
             proc.terminate()

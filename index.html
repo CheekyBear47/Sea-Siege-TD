@@ -1071,6 +1071,8 @@ function newGame() {
   bakeTerrain(envNow());
 }
 /* Restores wallet, cosmetics and options from the save, plus any run in progress. */
+// Which server revision the content currently loaded in this browser is based on.
+let contentRev = 0;
 function bootFromSave() {
   const act = readAuth() || {};
   const raw = readSave();
@@ -1079,7 +1081,23 @@ function bootFromSave() {
   // never surfaces another profile's run, wallet or collection.
   const owner = (raw && raw.owner) || "solo";
   const mine = act.mode === "account" ? owner === act.current : (owner === "solo" || owner === "guest");
-  const save = mine ? raw : null;
+  let save = mine ? raw : null;
+  // A copy cached from another device wins when it is newer than this browser's own.
+  // Same account, two machines: the newest progress is what loads.
+  if (act.mode === "account") {
+    const mirror = loadAccounts().accounts[act.current];
+    if (mirror && mirror.save) {
+      const mirRev = mirror.rev || 0;
+      const localRev = (save && save.rev) || 0;
+      const newer = mirRev > localRev ||
+        (mirRev === localRev && (mirror.save.at || 0) > (save ? (save.at || 0) : 0));
+      if (newer) {
+        save = mirror.save;
+        writeSave(Object.assign({}, save, { owner: act.current }));
+      }
+    }
+  }
+  contentRev = (save && save.rev) || 0;
   if (save) {
     if (save.wallet) {
       G.gems = save.wallet.gems || 0;
@@ -2912,7 +2930,9 @@ function serverDown(e) {
 // Adopt a server reply: mirror the account locally and remember the session token.
 function adoptSession(j) {
   const acct = Object.assign({}, j.account);
-  writeSession({ token: j.token, id: acct.id, at: Date.now() });
+  // `rev` is the server's profile revision: every pushed save must say which one it
+  // was based on, so an older browser cannot overwrite a newer profile (see store_profile).
+  writeSession({ token: j.token, id: acct.id, at: Date.now(), rev: acct.rev || 0 });
   const db = loadAccounts();
   db.accounts[acct.id] = acct;
   db.order = db.order || [];
@@ -2928,6 +2948,22 @@ function queuePush() {
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = setTimeout(pushProfile, 5000);
 }
+// Refresh the local mirror from this browser's save - but never DOWNGRADE it. A copy
+// cached from another device can be newer than this machine's stale one, and
+// overwriting it here would destroy the very thing bootFromSave falls back to.
+function mergeLocalIntoMirror(a) {
+  const local = readSave();
+  const localRev = (local && local.rev) || 0;
+  const mirrorRev = a.rev || 0;
+  const localAt = (local && local.at) || 0;
+  const mirrorAt = (a.save && a.save.at) || 0;
+  // Order by the server revision this copy was based on. Timestamps cannot do it: two
+  // live pages both stamp "now" for their own saves, so the clock says nothing about
+  // which CONTENT is newer. Equal revision (this device is in step) -> local wins.
+  const localIsNewer = !a.save || (localRev !== mirrorRev ? localRev > mirrorRev : localAt >= mirrorAt);
+  if (localIsNewer) a.save = local;
+  return a;
+}
 // Built from the LIVE game state every time. An earlier version sent the mirror's
 // snapshot, which was captured at boot - so a run played afterwards synced as null.
 function profilePayload() {
@@ -2935,7 +2971,7 @@ function profilePayload() {
   const db = loadAccounts();
   const a = auth && auth.mode === "account" ? db.accounts[auth.current] : null;
   if (a) {
-    a.save = readSave();
+    mergeLocalIntoMirror(a);
     a.boards = loadBoard();
     a.stats = Object.assign(statsDefaults(), a.stats || {});
     a.lastSeen = Date.now();
@@ -2947,12 +2983,48 @@ function profilePayload() {
     stats: a ? a.stats : null,
   };
 }
+let lastPushSig = null;
 function pushProfile() {
   const sess = readSession();
   const auth = readAuth();
   if (!sess || !sess.token || !auth || auth.mode !== "account") return Promise.resolve();
-  return api("/api/account/save", Object.assign({ token: sess.token }, profilePayload()), 15000)
+  const payload = profilePayload();
+  // Nothing changed since the last accepted push? Then this is an idle heartbeat and it
+  // must NOT take the profile slot: an untouched browser sitting in a background tab
+  // would otherwise keep bumping the revision and every push from the device the player
+  // is actually using would be refused as stale.
+  const sig = JSON.stringify(payload.save || {}) + "|" + ((payload.boards || []).length);
+  if (sig === lastPushSig) return Promise.resolve();
+  const body = Object.assign({ token: sess.token, baseRev: sess.rev || 0 }, payload);
+  return api("/api/account/save", body, 15000)
+    .then(j => {
+      // Track the revision each accepted push produced, so this device stays in step
+      // with the server instead of being refused as stale from then on.
+      if (j && j.account) writeSession(Object.assign({}, readSession() || {}, { rev: j.account.rev || 0 }));
+      if (j && !j.stale) lastPushSig = sig;
+      // Another device holds a newer copy. Cache it so the next load picks it up — the
+      // run in progress is deliberately left alone (swapping the map mid-wave is worse).
+      if (j && j.stale && j.account) adoptProfileFromServer(j.account);
+      return j;
+    })
     .catch(() => { /* offline: the local mirror still has everything */ });
+}
+let staleNoted = null;
+function adoptProfileFromServer(acct) {
+  if (!acct) return;
+  const db = loadAccounts();
+  db.accounts[acct.id] = Object.assign({}, db.accounts[acct.id] || {}, acct);
+  saveAccounts(db);
+  // Adopting also moves this device onto the server's revision, so its next push is
+  // based on the current one and is accepted rather than refused again.
+  if (acct.rev != null) {
+    writeSession(Object.assign({}, readSession() || {}, { id: acct.id, rev: acct.rev }));
+  }
+  const when = (acct.save || {}).at || acct.rev || 0;
+  if (staleNoted !== when) {
+    staleNoted = when;
+    toast("A newer save from another device was found — it loads the next time you start.");
+  }
 }
 // Push right now instead of waiting for the debounce (leaving, switching, hiding).
 function flushPush() {
@@ -3038,7 +3110,7 @@ function syncProfile() {
   const db = loadAccounts();
   const a = db.accounts[auth.current];
   if (!a) return;
-  a.save = readSave();
+  mergeLocalIntoMirror(a);
   a.boards = loadBoard();
   a.stats = Object.assign(statsDefaults(), a.stats || {});
   a.lastSeen = Date.now();
@@ -3150,8 +3222,11 @@ function signOut() {
 }
 // Put an account's run/boards into this browser's save slots (no reload).
 function applyProfileToStorage(acct) {
-  if (acct && acct.save) writeSave(Object.assign({}, acct.save, { owner: acct.id }));
+  // `rev` records which server revision this working copy came from, so a later load can
+  // tell it apart from a newer copy adopted from another device.
+  if (acct && acct.save) writeSave(Object.assign({}, acct.save, { owner: acct.id, rev: acct.rev || 0 }));
   else clearSave();
+  contentRev = (acct && acct.rev) || 0;      // this content now IS that revision
   saveBoard((acct && acct.boards) || []);
 }
 function reloadForProfile(label) {
@@ -3218,7 +3293,8 @@ function initGoogle() {
     slot.textContent = "";
     const err = document.createElement("div");
     err.className = "auth-err";
-    err.textContent = "Google Identity Services could not load — sign-in requires Google, so retry once your connection is back.";
+    err.textContent = "Google Identity Services could not load here (blocked, offline, or the " +
+      "client id is not configured). Use the Username & Password tab instead — it works on its own.";
     slot.appendChild(err);
   });
 }
@@ -4408,6 +4484,10 @@ function saveGame(force) {
   if (!authNow.mode) return;               // sitting at the sign-in gate: nothing to write yet
   const blob = {
     v: 2, at: Date.now(),
+    // The server revision this CONTENT came from — not the session's current revision.
+    // Adopting a newer copy bumps the session rev but not this, so a device sitting on
+    // older content can never claim to be up to date and overwrite the newer profile.
+    rev: contentRev,
     // Which profile this working copy belongs to: an account id, or "guest".
     // A blob owned by an account is never inherited by a different account.
     owner: authNow.mode === "account" ? authNow.current : "solo",

@@ -359,6 +359,7 @@ class Accounts:
             "email": email, "avatar": avatar, "sub": sub,
             "createdAt": now, "lastSeen": now,
             "stats": {}, "save": None, "boards": [], "salt": None, "hash": None,
+            "rev": 0,        # bumped on every accepted profile push (see store_profile)
         }
 
     def find_username(self, username: str) -> dict | None:
@@ -488,16 +489,51 @@ class Accounts:
         for t in [t for t, r in self.tokens.items() if now - r["at"] > SESSION_TTL]:
             self.tokens.pop(t, None)
 
-    def store_profile(self, acct: dict, save, boards, stats) -> None:
+    @staticmethod
+    def _stamp(blob) -> int:
+        """When a client wrote this blob. Every save carries `at` (ms)."""
+        if not isinstance(blob, dict):
+            return 0
+        try:
+            return int(blob.get("at") or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    def store_profile(self, acct: dict, save, boards, stats, base_rev=None) -> bool:
+        """Keep the newest copy of a profile and report whether this one won.
+
+        Two devices signed into one account both push, and a wall-clock stamp is NOT
+        enough to tell them apart: a browser sitting on an older state re-saves it with
+        a fresh timestamp and would win. So the server hands out a `rev` and the client
+        must say which rev it based its work on. A push from an older rev is refused -
+        the caller then returns the server's copy, which the client adopts, and its next
+        push (now based on the current rev) is accepted again.
+
+        Returns False when the incoming blob was refused.
+        """
+        fresh = True
         with self.lock:
+            cur = int(acct.get("rev") or 0)
             if save is not None:
-                acct["save"] = save
-            if boards is not None:
-                acct["boards"] = boards
-            if stats is not None:
-                acct["stats"] = stats
+                if base_rev is None:
+                    # Legacy client (no rev): fall back to the timestamp comparison.
+                    mine = self._stamp(save)
+                    theirs = self._stamp(acct.get("save"))
+                    if theirs and mine < theirs:
+                        fresh = False
+                elif int(base_rev) < cur:
+                    fresh = False
+                if fresh:
+                    acct["save"] = save
+                    acct["rev"] = cur + 1
+            if fresh:
+                if boards is not None:
+                    acct["boards"] = boards
+                if stats is not None:
+                    acct["stats"] = stats
             acct["lastSeen"] = int(time.time() * 1000)
         self.flush()
+        return fresh
 
 
 ACCOUNTS = Accounts(ACCOUNTS_FILE)
@@ -618,8 +654,13 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
                 if action == "username":
                     return self._acct_ok(ACCOUNTS.set_username(acct["id"], body.get("username")),
                                          token=body.get("token"))
-                ACCOUNTS.store_profile(acct, body.get("save"), body.get("boards"), body.get("stats"))
-                return self._json({"ok": True, "at": int(time.time() * 1000)})
+                fresh = ACCOUNTS.store_profile(acct, body.get("save"), body.get("boards"),
+                                               body.get("stats"), body.get("baseRev"))
+                if not fresh:
+                    print(f"  ~ profile push from {acct['id']} was older than the stored copy - kept theirs",
+                          flush=True)
+                return self._json({"ok": True, "at": int(time.time() * 1000), "stale": not fresh,
+                                   "account": ACCOUNTS.public(acct)})
             if action == "logout":
                 ACCOUNTS.revoke(body.get("token"))
                 return self._json({"ok": True})
