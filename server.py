@@ -71,6 +71,7 @@ ACCOUNTS_FILE = ROOT / "accounts.json"    # override with --accounts
 SESSION_TTL = 60 * 60 * 24 * 30           # a session token stays good for 30 days
 PBKDF2_ROUNDS = 120_000
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,16}$")
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
 # The OAuth client the page uses. Google's tokeninfo endpoint only accepts a token
 # minted for this audience, so a token for somebody else's app is refused.
 GOOGLE_CLIENT_ID = (os.environ.get("GOOGLE_CLIENT_ID")
@@ -259,6 +260,20 @@ HUB = Hub()
 # item key -> rarity, used to keep basic starter gear out of trades.
 RARITY_RANK = {"common": 0, "rare": 1, "epic": 2, "legendary": 3, "mythic": 4}
 TRADE_RARITY = {"banner:harbour": "common", "banner:kraken": "rare", "banner:royal": "legendary", "banner:sunfire": "rare", "banner:verdant": "epic", "env:dawn": "common", "env:frozen": "epic", "env:midnight": "rare", "env:storm": "epic", "env:sunset": "rare", "env:volcanic": "legendary", "fleet:crimson": "rare", "fleet:ghost": "epic", "fleet:jade": "legendary", "fleet:royal": "common", "fx:ember": "epic", "fx:gilded": "rare", "fx:prism": "legendary", "fx:standard": "common", "turret:kraken": "mythic", "turret:leviathan": "mythic", "turret:sunfire": "mythic", "turret:trident": "mythic", "wrap:aurora": "legendary", "wrap:bare": "common", "wrap:brass": "rare", "wrap:coral": "epic", "wrap:obsidian": "rare", "wrap:verdant": "epic"}
+ITEM_POINTS = {"banner:harbour": 10, "banner:kraken": 50, "banner:royal": 1200, "banner:sunfire": 50, "banner:verdant": 250, "env:dawn": 10, "env:frozen": 250, "env:midnight": 50, "env:storm": 250, "env:sunset": 50, "env:volcanic": 1200, "fleet:crimson": 50, "fleet:ghost": 250, "fleet:jade": 1200, "fleet:royal": 10, "fx:ember": 250, "fx:gilded": 50, "fx:prism": 1200, "fx:standard": 10, "turret:kraken": 10000, "turret:leviathan": 10000, "turret:sunfire": 10000, "turret:trident": 10000, "wrap:aurora": 1200, "wrap:bare": 10, "wrap:brass": 50, "wrap:coral": 250, "wrap:obsidian": 50, "wrap:verdant": 250}
+
+def owned_ids(save) -> dict:
+    """The own-store out of a save blob: {"env:dawn": True, ...}."""
+    cos = (save or {}).get("cos") or {}
+    own = cos.get("own") if isinstance(cos, dict) else None
+    return own if isinstance(own, dict) else {}
+
+def profile_worth(save) -> int:
+    return sum(ITEM_POINTS.get(k, 0) for k, v in owned_ids(save).items() if v)
+
+def profile_owned(save) -> int:
+    return sum(1 for v in owned_ids(save).values() if v)
+
 
 def tradeable(item_id: str) -> bool:
     """Rare and above only - sprats and starter skins never change hands."""
@@ -371,6 +386,51 @@ class Accounts:
                 return a
         return None
 
+    def find_email(self, email: str) -> dict | None:
+        want = str(email or "").strip().lower()
+        if not want:
+            return None
+        for a in self.accounts.values():
+            if str(a.get("email") or "").lower() == want:
+                return a
+        return None
+
+    def leaderboard(self) -> list[dict]:
+        """Every registered player, online or not, ranked by their best wave.
+
+        The board is built from the account store (server-side, persisted), not from
+        whoever happens to be connected: a captain who logged off yesterday still holds
+        their rank. `online` only marks who the hub can see right now.
+        """
+        live_prof = {c.get("prof") for c in HUB.clients.values() if c.get("prof")}
+        live_name = {c.get("name") for c in HUB.clients.values()}
+        rows = []
+        for acct in self.accounts.values():
+            st = acct.get("stats") or {}
+            save = acct.get("save") or {}
+            run = save.get("run") or {}
+            wallet = save.get("wallet") or {}
+            best = int(st.get("bestWave") or run.get("wave") or 0)
+            waves = int(st.get("waves") or 0)
+            kills = int(st.get("kills") or 0)
+            worth = profile_worth(save)
+            rows.append({
+                "id": acct["id"],
+                "name": acct.get("username") or acct.get("name") or "Captain",
+                "provider": acct.get("provider") or "local",
+                "bestWave": best, "waves": waves, "kills": kills,
+                "gems": int(st.get("gems") or 0), "gemsHeld": int(wallet.get("gems") or 0),
+                "gold": int(st.get("gold") or 0), "breaches": int(st.get("breaches") or 0),
+                "runs": int(st.get("runs") or 0),
+                "worth": worth, "owned": profile_owned(save),
+                "lastSeen": int(acct.get("lastSeen") or 0),
+                # a rough overall score: wave progress dominates, wealth and sinking break ties
+                "score": best * 100 + waves * 25 + kills * 2 + worth // 5,
+                "online": acct["id"] in live_prof or (acct.get("username") in live_name),
+            })
+        rows.sort(key=lambda r: (-r["bestWave"], -r["worth"], -r["kills"]))
+        return rows
+
     @staticmethod
     def public(acct: dict) -> dict:
         """An account as the client may see it - never the password material."""
@@ -410,29 +470,37 @@ class Accounts:
         return acct, created
 
     # --- username / password ---------------------------------------------
-    def register(self, username, password) -> dict:
+    def register(self, username, password, email=None) -> dict:
         username = str(username or "").strip()
         if not USERNAME_RE.match(username):
             raise ValueError("Username must be 3-16 characters: letters, numbers and underscores.")
         if len(str(password or "")) < 6:
             raise ValueError("Password must be at least 6 characters.")
+        email = str(email or "").strip().lower() or None
+        if email and not EMAIL_RE.match(email):
+            raise ValueError("That does not look like an email address.")
         with self.lock:
             if self.find_username(username):
                 raise ValueError("That username is already taken - pick another.")
+            if email and self.find_email(email):
+                raise ValueError("That email is already registered - sign in instead.")
             salt = secrets.token_hex(16)
-            acct = self._new("local", username, username, None, None)
+            acct = self._new("local", username, username, email, None)
             acct["salt"] = salt
             acct["hash"] = self._hash(password, salt)
             self.accounts[acct["id"]] = acct
         self.flush()
         return acct
 
-    def login_local(self, username, password) -> dict:
+    def login_local(self, identifier, password) -> dict:
+        """Sign in with either the registered username OR the registered email."""
+        who = str(identifier or "").strip()
         with self.lock:
-            acct = (self.accounts.get("local:" + str(username or "").strip().lower())
-                    or self.find_username(username))
+            acct = (self.accounts.get("local:" + who.lower())
+                    or self.find_username(who)
+                    or self.find_email(who))
         if not acct or not acct.get("hash"):
-            raise ValueError("No account with that username.")
+            raise ValueError("No account with that username or email.")
         if not hmac.compare_digest(str(acct["hash"]), self._hash(password, acct.get("salt") or "")):
             raise ValueError("Wrong password.")
         with self.lock:
@@ -595,6 +663,10 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
             return self._sse()
         if path == "/api/players":
             return self._json({"players": HUB.public_players()})
+        if path == "/api/leaderboard":
+            rows = ACCOUNTS.leaderboard()
+            return self._json({"ok": True, "at": int(time.time() * 1000),
+                               "accounts": len(rows), "rows": rows})
         if path == "/api/health":
             return self._json({"ok": True, "players": len(HUB.clients), "trades": len(HUB.trades),
                                "accounts": len(ACCOUNTS.accounts)})
@@ -641,10 +713,13 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
             if action == "google":
                 return self._acct_google(body)
             if action == "register":
-                return self._acct_ok(ACCOUNTS.register(body.get("username"), body.get("password")),
-                                     created=True)
+                return self._acct_ok(
+                    ACCOUNTS.register(body.get("username"), body.get("password"), body.get("email")),
+                    created=True)
             if action == "login":
-                return self._acct_ok(ACCOUNTS.login_local(body.get("username"), body.get("password")))
+                # one field, either identifier: the username or the registered email
+                who = body.get("identifier") or body.get("username")
+                return self._acct_ok(ACCOUNTS.login_local(who, body.get("password")))
             if action in ("session", "username", "save"):
                 acct = ACCOUNTS.by_token(body.get("token"))
                 if not acct:

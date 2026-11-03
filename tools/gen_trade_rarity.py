@@ -55,6 +55,18 @@ def main() -> int:
         for key in re.findall(r'"([^"]+)"', order.group(1)):
             out[f"turret:{key}"] = "mythic"
 
+    # worth points per rarity, straight from the client's RARITY table, so the global
+    # leaderboard can score a profile from its own-store without a second table
+    points: dict[str, int] = {}
+    rarity_block = re.search(r"const RARITY = \{(.*?)\n\};", html, re.S)
+    if rarity_block:
+        for rk, pts in re.findall(r"(\w+):\s*\{[^}]*?pts:\s*(\d+)", rarity_block.group(1)):
+            points[rk] = int(pts)
+    if not points:
+        print("!! could not read the RARITY table from index.html")
+        return 1
+    item_points = {k: points.get(v, 0) for k, v in out.items()}
+
     server = ROOT / "server.py"
     src = server.read_text(encoding="utf-8")
     if BEGIN not in src or END not in src:
@@ -67,6 +79,20 @@ def main() -> int:
         "# item key -> rarity, used to keep basic starter gear out of trades.",
         "RARITY_RANK = {\"common\": 0, \"rare\": 1, \"epic\": 2, \"legendary\": 3, \"mythic\": 4}",
         f"TRADE_RARITY = {json.dumps(out, sort_keys=True)}",
+        f"ITEM_POINTS = {json.dumps(item_points, sort_keys=True)}",
+        "",
+        "def owned_ids(save) -> dict:",
+        "    \"\"\"The own-store out of a save blob: {\"env:dawn\": True, ...}.\"\"\"",
+        "    cos = (save or {}).get(\"cos\") or {}",
+        "    own = cos.get(\"own\") if isinstance(cos, dict) else None",
+        "    return own if isinstance(own, dict) else {}",
+        "",
+        "def profile_worth(save) -> int:",
+        "    return sum(ITEM_POINTS.get(k, 0) for k, v in owned_ids(save).items() if v)",
+        "",
+        "def profile_owned(save) -> int:",
+        "    return sum(1 for v in owned_ids(save).values() if v)",
+        "",
         "",
         "def tradeable(item_id: str) -> bool:",
         "    \"\"\"Rare and above only - sprats and starter skins never change hands.\"\"\"",
@@ -81,7 +107,8 @@ def main() -> int:
         by_rarity[r] = by_rarity.get(r, 0) + 1
     print(f"wrote {len(out)} items into server.py: " +
           ", ".join(f"{k} {v}" for k, v in sorted(by_rarity.items())))
-    print("tradeable (rare+):", sum(v for k, v in by_rarity.items() if k != "common"))
+    print("tradeable (rare+):", sum(v for k, v in by_rarity.items() if k != "common"),
+          "| worth points:", points)
     return 0
 
 

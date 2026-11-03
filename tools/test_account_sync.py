@@ -288,6 +288,57 @@ def main() -> int:
         check("adopting the revision unblocks the device",
               st == 200 and j.get("stale") is False and j["account"]["save"]["gems"] == 250, str(j)[:90])
 
+        # -------------------------------- email logins + the global leaderboard
+        print("\n[12] sign in with a username OR an email, and the global board")
+        st, j = post(base, "/api/account/register",
+                     {"username": "MailCaptain", "password": "mailpass1", "email": "Mail@Example.com"})
+        check("registered with an email", st == 200 and j["account"]["email"] == "mail@example.com",
+              str(j)[:110])
+        tok_m = j["token"]
+        st, j = post(base, "/api/account/login", {"identifier": "mail@example.com", "password": "mailpass1"})
+        check("signs in with the EMAIL", st == 200 and j["account"]["id"] == "local:mailcaptain",
+              str(j)[:100])
+        st, j = post(base, "/api/account/login", {"identifier": "MailCaptain", "password": "mailpass1"})
+        check("signs in with the USERNAME", st == 200 and j["account"]["id"] == "local:mailcaptain",
+              str(j)[:100])
+        st, j = post(base, "/api/account/login", {"identifier": "mail@example.com", "password": "nope"})
+        check("a wrong password is still refused", st == 400 and "Wrong password" in j.get("error", ""),
+              str(j)[:90])
+        st, j = post(base, "/api/account/register",
+                     {"username": "OtherCaptain", "password": "otherpass1", "email": "mail@example.com"})
+        check("a duplicate email is refused", st == 400 and "already registered" in j.get("error", ""),
+              str(j)[:90])
+        st, j = post(base, "/api/account/register",
+                     {"username": "BadMail", "password": "badmailpass", "email": "not-an-email"})
+        check("a malformed email is refused", st == 400, str(j)[:90])
+
+        post(base, "/api/account/save",
+             {"token": tok_m, "save": {"cos": {"own": {"env:sunset": True, "turret:kraken": True}}},
+              "boards": [], "stats": {"bestWave": 30, "waves": 30, "gems": 12, "gold": 4000, "kills": 300}})
+        with urllib.request.urlopen(base + "/api/leaderboard", timeout=10) as r:
+            lb = json.loads(r.read().decode())
+        check("the leaderboard endpoint answers", lb.get("ok") is True, str(lb)[:80])
+        names = [row["name"] for row in lb["rows"]]
+        check("every registered captain is listed",
+              all(n in names for n in ("MailCaptain", "CaptainSalty", "IronTeddy", "Bravo_2")), str(names))
+        check("offline captains are included (nobody is connected here)",
+              all(row["online"] is False for row in lb["rows"]),
+              str([(r["name"], r["online"]) for r in lb["rows"]]))
+        rows = lb["rows"]
+        waves = [r["bestWave"] for r in rows]
+        check("rows are ranked by best wave (descending)", waves == sorted(waves, reverse=True), str(waves))
+        mail = next((r for r in rows if r["name"] == "MailCaptain"), None)
+        check("the mail captain carries its own wave", bool(mail) and mail["bestWave"] == 30,
+              str(mail)[:130])
+        check("worth points computed server-side", bool(mail) and mail["worth"] == 10050,
+              str(mail and mail.get("worth")))
+        check("owned count computed server-side", bool(mail) and mail["owned"] == 2,
+              str(mail and mail.get("owned")))
+        check("a combined score is derived", bool(mail) and mail["score"] >= 30 * 100,
+              str(mail and mail.get("score")))
+        check("a wave-1 player with no profile still lists", any(r["name"] == "Bravo_2" for r in rows),
+              str([r["name"] for r in rows]))
+
     finally:
         try:
             proc.terminate()

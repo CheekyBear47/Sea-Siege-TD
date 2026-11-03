@@ -346,6 +346,17 @@
   .card.mini .sp{display:block;font-size:9px;color:#8fd6ff;font-weight:700;margin-top:2px}
   .card.mini{cursor:help}
   /* ---- inventory: one list, three sleek dropdowns ---- */
+  .save-line{font-size:9.5px;color:var(--dim);margin-top:6px;text-align:center;letter-spacing:.3px}
+  .save-line.ok{color:#8ee6b0}
+  .save-line.busy{color:#8fd6ff}
+  .save-line.bad{color:#ffb3b3}
+  .lb-sorts{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px;align-items:center}
+  .lb-sorts .inv-bar-label{margin-right:2px}
+  .lb .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3d4d60;margin-right:6px;
+    vertical-align:middle}
+  .lb .dot.on{background:#57e08a;box-shadow:0 0 7px rgba(87,224,138,.8)}
+  .lb .me{color:#8fd6ff;font-weight:800}
+  .lb .prov{font-size:9px;color:var(--dim);margin-left:5px}
   .inv-selects{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 4px}
   .inv-selects label{display:flex;align-items:center;gap:5px;font-size:9px;letter-spacing:1px;
     text-transform:uppercase;color:var(--dim);font-weight:800}
@@ -554,10 +565,13 @@
         <button class="atab on" data-lmode="signin">Sign in</button>
         <button class="atab" data-lmode="register">Create account</button>
       </div>
-      <label>Username
-        <input id="lo-user" maxlength="16" autocomplete="username" spellcheck="false" placeholder="Captain" />
+      <label>Username or email
+        <input id="lo-user" maxlength="64" autocomplete="username" spellcheck="false" placeholder="Captain or you@example.com" />
       </label>
       <label>Password<input id="lo-pass" type="password" autocomplete="current-password" /></label>
+      <label id="lo-email-wrap" hidden>Email (optional, lets you sign in with either)
+        <input id="lo-email" maxlength="64" autocomplete="email" spellcheck="false" placeholder="you@example.com" />
+      </label>
       <label id="lo-pass2-wrap" hidden>Confirm password
         <input id="lo-pass2" type="password" autocomplete="new-password" /></label>
       <div class="auth-err" id="lo-err"></div>
@@ -680,6 +694,7 @@
       <div class="stat lives"><b id="ui-lives">12</b><small>Hull HP</small></div>
       <div class="stat wave"><b id="ui-wave">0</b><small>Wave</small></div>
     </div>
+    <div class="save-line" id="ui-save">☁ cloud save ready</div>
 
     <div id="shop"></div>
 
@@ -909,101 +924,131 @@ function bakeTerrain(env) {
 const TOWERS = {
   /* ---------- rank 1 — 60..90 gold ---------- */
   longbow: {
-    name: "Longbow Nest", glyph: "🏹", cost: 60, rank: 1, kind: "Archery",
+    name: "Longbow Nest", glyph: "🏹", cost: 110, rank: 1, kind: "Archery",
     dmg: 7, rate: 0.30, range: 192, projSpeed: 780, projType: "arrow",
     color: "#c8f08a", desc: "Rapid arrows",
     special: { name: "Arrow Volley", text: "looses a fan of 3 arrows at once." }
   },
   slinger: {
-    name: "Slinger Post", glyph: "🪨", cost: 90, rank: 1, kind: "Archery",
+    name: "Slinger Post", glyph: "🪨", cost: 165, rank: 1, kind: "Archery",
     dmg: 17, rate: 0.62, range: 214, projSpeed: 620, projType: "arrow", splash: 26,
     color: "#e6cfa0", desc: "Heavy sling stones",
     special: { name: "Sling Barrage", text: "stones hit harder and stun the crew (+pierce)." }
   },
   /* ---------- rank 2 — 150..250 gold ---------- */
   crossbow: {
-    name: "Crossbow Ballista", glyph: "🎯", cost: 150, rank: 2, kind: "Archery",
+    name: "Crossbow Ballista", glyph: "🎯", cost: 280, rank: 2, kind: "Archery",
     dmg: 22, rate: 0.45, range: 178, projSpeed: 820, projType: "bolt",
     color: "#9be7ff", desc: "Piercing bolts",
     special: { name: "Piercing Bolts", text: "bolts punch through extra ships." }
   },
   cannon: {
-    name: "Heavy Cannon", glyph: "💥", cost: 200, rank: 2, kind: "Artillery",
+    name: "Heavy Cannon", glyph: "💥", cost: 370, rank: 2, kind: "Artillery",
     dmg: 40, rate: 1.15, range: 202, projSpeed: 340, projType: "shell",
     splash: 62, color: "#ffd166", desc: "Splash shells",
     special: { name: "Explosive Shells", text: "bigger blast radius and burning splash." }
   },
   harpoon: {
-    name: "Harpoon Snare", glyph: "⚓", cost: 250, rank: 2, kind: "Support",
+    name: "Harpoon Snare", glyph: "⚓", cost: 460, rank: 2, kind: "Support",
     dmg: 18, rate: 1.05, range: 172, projSpeed: 950, projType: "harpoon",
     slow: 0.45, slowDur: 2.0, color: "#a9d8ff", desc: "Slows & tethers",
     special: { name: "Chain Harpoon", text: "snares two ships per throw." }
   },
   /* ---------- rank 3 — 450..700 gold ---------- */
   trebuchet: {
-    name: "Trebuchet", glyph: "🪨", cost: 450, rank: 3, kind: "Artillery",
+    name: "Trebuchet", glyph: "🪨", cost: 830, rank: 3, kind: "Artillery",
     dmg: 88, rate: 2.35, range: 300, projSpeed: 300, projType: "stone",
     splash: 104, minRange: 96, color: "#e0b088", desc: "Long lob, huge blast",
     special: { name: "Fire Bombs", text: "leaves a burning pool where the shot lands." }
   },
   tesla: {
-    name: "Tesla Turret", glyph: "⚡", cost: 560, rank: 3, kind: "Support",
+    name: "Tesla Turret", glyph: "⚡", cost: 1035, rank: 3, kind: "Support",
     dmg: 13, rate: 0.80, range: 152, projType: "tesla",
     chain: 2, slow: 0.42, slowDur: 1.8, reveal: 190, color: "#c39bff", desc: "Chain + reveal",
     special: { name: "Heavy Chill", text: "deeper slow and +1 chain jump." }
   },
   brazier: {
-    name: "Greek Fire Brazier", glyph: "🔥", cost: 700, rank: 3, kind: "Artillery",
+    name: "Greek Fire Brazier", glyph: "🔥", cost: 1295, rank: 3, kind: "Artillery",
     dmg: 9, rate: 0.18, range: 122, projType: "flame", cone: 0.62,
     pierceArmor: true, color: "#ff9d4d", desc: "Short flame cone, burns armour-free",
     special: { name: "Napalm", text: "spills burning oil that keeps cooking ships." }
   },
   /* ---------- rank 4 — 950..1500 gold ---------- */
   mortar: {
-    name: "Mortar Citadel", glyph: "🧨", cost: 950, rank: 4, kind: "Artillery",
+    name: "Mortar Citadel", glyph: "🧨", cost: 1760, rank: 4, kind: "Artillery",
     dmg: 175, rate: 2.60, range: 430, projSpeed: 260, projType: "stone",
     splash: 148, minRange: 150, color: "#f0a35e", desc: "Fortress mortar, vast blast",
     special: { name: "Siege Barrage", text: "double payload — a huge blast plus a fire pool." }
   },
   frostbite: {
-    name: "Frostbite Anchor", glyph: "❄️", cost: 1200, rank: 4, kind: "Support",
+    name: "Frostbite Anchor", glyph: "❄️", cost: 2220, rank: 4, kind: "Support",
     dmg: 30, rate: 1.10, range: 208, projType: "frost",
     slow: 0.55, slowDur: 2.6, color: "#a8e8ff", desc: "Freezing pulse, slows a whole line",
     special: { name: "Deepfreeze", text: "much harder slow that also cracks armour." }
   },
-  /* ---------- rank 5 — MYTHIC: crate drops only ---------- */
+  /* ---------- rank 5 — 2,600..3,400 gold: end-game support ---------- */
+  stormcaller: {
+    name: "Stormcaller Battery", glyph: "🌩️", cost: 4810, rank: 5, kind: "Support",
+    dmg: 205, rate: 0.62, range: 385, projType: "tesla",
+    chain: 4, slow: 0.46, slowDur: 2.4, reveal: 220, color: "#a8c8ff",
+    desc: "Storm chain that reveals and drags raiders",
+    special: { name: "Chain Tempest", text: "storms jump two more times and pin everything they touch." }
+  },
+  wavebreak: {
+    name: "Wavebreak Bastion", glyph: "🌊", cost: 6290, rank: 5, kind: "Artillery",
+    dmg: 395, rate: 1.95, range: 520, projSpeed: 300, projType: "stone",
+    splash: 195, minRange: 140, color: "#7fd0ff", desc: "Breaker shells, wide and relentless",
+    special: { name: "Undertow", text: "the blast drags the survivors backwards down the channel." }
+  },
+  /* ---------- rank 6 — 5,200..7,000 gold: the endless-wave answers ---------- */
+  sunforge: {
+    name: "Sunforge Cathedral", glyph: "🔆", cost: 9620, rank: 6, kind: "Energy",
+    dmg: 560, rate: 0.55, range: 470, projType: "ray", burnOn: true, color: "#ffd76a",
+    desc: "Cathedral-scale solar lance, burns through armour",
+    special: { name: "Corona Lance", text: "the lance widens and cooks a burning hole through the plating." }
+  },
+  dreadnought: {
+    name: "Dreadnought Foundry", glyph: "⚙️", cost: 12950, rank: 6, kind: "Artillery",
+    dmg: 980, rate: 3.05, range: 640, projSpeed: 240, projType: "stone",
+    splash: 320, minRange: 175, color: "#ff9d4d",
+    desc: "Foundry-forged shells that delete a squadron",
+    special: { name: "Scrapstorm", text: "each shell leaves a burning killing field where it lands." }
+  },
+  /* ---------- rank 7 — MYTHIC: crate drops only ---------- */
   trident: {
-    name: "Poseidon's Trident Battery", glyph: "🔱", cost: 2000, rank: 5, mythic: true, kind: "Mythic",
+    name: "Poseidon's Trident Battery", glyph: "🔱", cost: 2000, rank: 7, mythic: true, kind: "Mythic",
     dmg: 130, rate: 0.42, range: 340, projSpeed: 1050, projType: "bolt", volley: 3,
     pierceBase: 3, color: "#6fe3ff", desc: "Triple tidal bolts pierce whole fleets",
     special: { name: "Tidal Salvo", text: "never misses a beat — 4 bolts that skewer everything." }
   },
   kraken: {
-    name: "Kraken Abyss Mortar", glyph: "🐙", cost: 2400, rank: 5, mythic: true, kind: "Mythic",
+    name: "Kraken Abyss Mortar", glyph: "🐙", cost: 2400, rank: 7, mythic: true, kind: "Mythic",
     dmg: 320, rate: 2.30, range: 470, projSpeed: 240, projType: "stone",
     splash: 210, minRange: 130, color: "#9d7bff", desc: "Abyssal shell that drags ships under",
     special: { name: "Abyss Rift", text: "leaves a whirlpool that singes and slows everything near it." }
   },
   sunfire: {
-    name: "Sunfire Ray Engine", glyph: "☀️", cost: 2900, rank: 5, mythic: true, kind: "Mythic",
+    name: "Sunfire Ray Engine", glyph: "☀️", cost: 2900, rank: 7, mythic: true, kind: "Mythic",
     dmg: 255, rate: 0.75, range: 400, projType: "ray", burnOn: true,
     color: "#ffd76a", desc: "Sustained solar beam, ignites the hull",
     special: { name: "Solar Flare", text: "the beam widens and sets the whole ship alight." }
   },
   leviathan: {
-    name: "Leviathan Chains", glyph: "⛓️", cost: 3500, rank: 5, mythic: true, kind: "Mythic",
+    name: "Leviathan Chains", glyph: "⛓️", cost: 3500, rank: 7, mythic: true, kind: "Mythic",
     dmg: 95, rate: 0.85, range: 268, projType: "tesla",
     chain: 5, slow: 0.60, slowDur: 3.0, reveal: 300, color: "#7dffc4", desc: "Chains drag six ships at once",
     special: { name: "Dread Chain", text: "one more jump, and anything chained is slowed hard." }
   }
 };
 const TOWER_ORDER = ["longbow", "slinger", "crossbow", "cannon", "harpoon",
-                     "trebuchet", "tesla", "brazier", "mortar", "frostbite"];
+                     "trebuchet", "tesla", "brazier", "mortar", "frostbite",
+                     "stormcaller", "wavebreak", "sunforge", "dreadnought"];
 const MYTHIC_ORDER = ["trident", "kraken", "sunfire", "leviathan"];
 const ALL_TOWERS = TOWER_ORDER.concat(MYTHIC_ORDER);
 const RANK_BRACKETS = {
-  1: "Tier I · 60–90 🪙", 2: "Tier II · 150–250 🪙", 3: "Tier III · 450–700 🪙",
-  4: "Tier IV · 950–1,500 🪙", 5: "Mythic · crate drop only"
+  1: "Tier I · 110–165 🪙", 2: "Tier II · 280–460 🪙", 3: "Tier III · 830–1,295 🪙",
+  4: "Tier IV · 1,760–2,220 🪙", 5: "Tier V · 4,810–6,290 🪙 — end-game support",
+  6: "Tier VI · 9,620–12,950 🪙 — endless answers", 7: "Mythic · crate drop only"
 };
 
 const ENEMIES = {
@@ -1175,7 +1220,7 @@ function enemySpeedMul() {
 }
 function enemyArmorBonus() { return Math.min(0.32, 0.0068 * Math.max(0, G.wave - 1)); }
 // Gold is scarce on purpose: kill money barely keeps up with the fleet's HP growth.
-function enemyGoldMul() { return (1 + 0.022 * (G.wave - 1) + 0.04 * G.globals.gold) * DIFFICULTY[G.diff].gold; }
+function enemyGoldMul() { return (1 + 0.016 * (G.wave - 1) + 0.03 * G.globals.gold) * DIFFICULTY[G.diff].gold; }
 // Bosses scale far more gently than the escort fleet, so wave-5+ bosses stay killable.
 function enemyHp(type) {
   const m = enemyHpMul();
@@ -1598,7 +1643,7 @@ function waveCleared() {
   // the difficulty's gold multiplier applies to the wave purse too, so Relaxed really
   // is richer and Brutal really is tighter
   // Slashed hard: a wave pays a fraction of what it used to, so upgrades are earned.
-  const bonus = Math.round((58 + G.wave * 21 + Math.round(G.globals.gold * 16)) * DIFFICULTY[G.diff].gold);
+  const bonus = Math.round((44 + G.wave * 15 + Math.round(G.globals.gold * 12)) * DIFFICULTY[G.diff].gold);
   const gemGain = GEM_REWARD_WAVE + (G.waveHadBoss ? GEM_REWARD_BOSS : 0);
   G.gold += bonus;
   G.totalGold += bonus;
@@ -2647,7 +2692,7 @@ function drawHeart(x, y, s, fill, stroke) {
 function drawHUD(t) {
   const diff = DIFFICULTY[G.diff];
   // readout sits top-right, over the grass, so it never covers the spawn water
-  const hx = W - 418, hy = 14, hw = 404, hh = 92;
+  const hx = W - 418, hy = 14, hw = 404, hh = 112;
   ctx.save();
   ctx.fillStyle = "rgba(8,16,28,.62)";
   ctx.strokeStyle = "rgba(140,200,255,.20)";
@@ -2710,6 +2755,14 @@ function drawHUD(t) {
     ctx.fillStyle = "#cfe6ff";
     ctx.fillText("⚔ " + alive + " afloat · " + queued + " inbound · " + G.leaked + " breached", W / 2, 33);
   }
+
+  // ---- auto-save indicator (row 3 of the readout) ----
+  const sv = saveLine();
+  ctx.textAlign = "left";
+  ctx.font = "700 10px Segoe UI, sans-serif";
+  ctx.fillStyle = sv.cls === "bad" ? "rgba(255,179,179,.9)"
+    : sv.cls === "busy" ? "rgba(143,214,255,.9)" : "rgba(160,215,190,.72)";
+  ctx.fillText(sv.text, hx + 24, hy + 100);
 
   // ---- bottom control bar ----
   const by = H - 62, bh = 44;
@@ -2952,16 +3005,12 @@ function queuePush() {
 // cached from another device can be newer than this machine's stale one, and
 // overwriting it here would destroy the very thing bootFromSave falls back to.
 function mergeLocalIntoMirror(a) {
-  const local = readSave();
-  const localRev = (local && local.rev) || 0;
-  const mirrorRev = a.rev || 0;
-  const localAt = (local && local.at) || 0;
-  const mirrorAt = (a.save && a.save.at) || 0;
-  // Order by the server revision this copy was based on. Timestamps cannot do it: two
-  // live pages both stamp "now" for their own saves, so the clock says nothing about
-  // which CONTENT is newer. Equal revision (this device is in step) -> local wins.
-  const localIsNewer = !a.save || (localRev !== mirrorRev ? localRev > mirrorRev : localAt >= mirrorAt);
-  if (localIsNewer) a.save = local;
+  // The mirror is the "newest copy seen" cache; the save slot is what THIS device is
+  // playing. Only refresh the mirror while this device is in step with the server -
+  // if it is behind (its session revision is older) the mirror holds a newer adopted
+  // copy that must survive until the next page load.
+  const sess = readSession() || {};
+  if ((sess.rev || 0) >= (a.rev || 0)) a.save = readSave();
   return a;
 }
 // Built from the LIVE game state every time. An earlier version sent the mirror's
@@ -2978,8 +3027,11 @@ function profilePayload() {
     saveAccounts(db);
   }
   return {
-    save: a ? a.save : readSave(),
-    boards: a ? a.boards : loadBoard(),
+    // always the LIVE content of this device: that is the truth being synced. A device
+    // that is behind the server just gets its push refused (and adopts), which is
+    // cheaper and far more predictable than second-guessing which copy to send.
+    save: readSave(),
+    boards: loadBoard(),
     stats: a ? a.stats : null,
   };
 }
@@ -2994,14 +3046,23 @@ function pushProfile() {
   // would otherwise keep bumping the revision and every push from the device the player
   // is actually using would be refused as stale.
   const sig = JSON.stringify(payload.save || {}) + "|" + ((payload.boards || []).length);
-  if (sig === lastPushSig) return Promise.resolve();
+  if (sig === lastPushSig) {
+    saveState.at = Date.now();               // already up to date on the server
+    return Promise.resolve(null);
+  }
   const body = Object.assign({ token: sess.token, baseRev: sess.rev || 0 }, payload);
   return api("/api/account/save", body, 15000)
     .then(j => {
       // Track the revision each accepted push produced, so this device stays in step
       // with the server instead of being refused as stale from then on.
       if (j && j.account) writeSession(Object.assign({}, readSession() || {}, { rev: j.account.rev || 0 }));
-      if (j && !j.stale) lastPushSig = sig;
+      if (j && !j.stale) {
+        lastPushSig = sig;
+        // This content IS that revision now. Without this the account rev runs ahead of
+        // contentRev, the next payload prefers the stale mirror copy, and the auto-save
+        // would keep re-pushing old progress.
+        contentRev = j.account.rev || contentRev;
+      }
       // Another device holds a newer copy. Cache it so the next load picks it up — the
       // run in progress is deliberately left alone (swapping the map mid-wave is worse).
       if (j && j.stale && j.account) adoptProfileFromServer(j.account);
@@ -3043,7 +3104,49 @@ function beaconProfile() {
   } catch (e) { pushProfile(); }
 }
 // A slow heartbeat: whatever happens, the server copy is at most a minute behind.
-setInterval(() => { if (activeAccount()) pushProfile(); }, 20000);
+// The auto-save loop: every 15 seconds, sync the run, wallet, inventory and stats to
+// the account on the server. An unchanged profile is a no-op (see pushProfile), so this
+// is cheap and an idle tab can never take the profile slot from an active device.
+let saveState = { at: 0, ok: true, busy: false, err: "", count: 0 };
+setInterval(() => { if (activeAccount()) syncNow("auto"); }, 15000);
+function syncNow() {
+  if (!activeAccount()) return Promise.resolve(null);
+  saveState.busy = true;
+  return pushProfile()
+    .then(j => {
+      saveState.busy = false;
+      saveState.ok = true;
+      saveState.err = "";
+      saveState.at = Date.now();               // the data is on the server as of now
+      if (j) saveState.count++;
+      refreshSaveLine();
+      return j;
+    })
+    .catch(e => {
+      saveState.busy = false;
+      saveState.ok = false;
+      saveState.err = String((e && e.message) || e);
+      refreshSaveLine();
+      return null;
+    });
+}
+// Repaint just the save readout - called on every sync, so it never goes stale.
+function refreshSaveLine() {
+  const host = document.getElementById("ui-save");
+  if (!host) return;
+  const sv = saveLine();
+  host.textContent = sv.text;
+  host.className = "save-line" + (sv.cls ? " " + sv.cls : "");
+}
+function saveLine() {
+  const age = saveState.at ? Math.round((Date.now() - saveState.at) / 1000) : null;
+  if (!activeAccount()) return { text: "☁ sign in to sync your account", cls: "" };
+  if (saveState.busy) return { text: "☁ saving to your account…", cls: "busy" };
+  if (!saveState.ok) return { text: "☁ cloud save offline — retrying in 15s", cls: "bad" };
+  if (age === null) return { text: "☁ cloud auto-save every 15s", cls: "" };
+  return { text: "☁ saved " + (age < 5 ? "just now" : age < 60 ? age + "s ago" : Math.round(age / 60) + "m ago"),
+           cls: "ok" };
+}
 document.addEventListener("visibilitychange", () => { if (document.hidden) beaconProfile(); });
 // Last-ditch save on the way out - sendBeacon survives the page unloading.
 window.addEventListener("beforeunload", () => beaconProfile());
@@ -3372,6 +3475,8 @@ function setLocalMode(mode) {
     t.classList.toggle("on", t.dataset.lmode === localMode));
   const wrap = document.getElementById("lo-pass2-wrap");
   if (wrap) wrap.hidden = localMode !== "register";
+  const emailWrap = document.getElementById("lo-email-wrap");
+  if (emailWrap) emailWrap.hidden = localMode !== "register";
   const go = document.getElementById("lo-go");
   if (go) go.textContent = localMode === "register" ? "Create account" : "Sign in";
   const pass = document.getElementById("lo-pass");
@@ -3392,6 +3497,7 @@ function localSubmit() {
   const name = val("lo-user").trim();
   const pass = val("lo-pass"), pass2 = val("lo-pass2");
   setAuthError("lo", "");
+  const email = val("lo-email").trim();
   if (localMode === "register") {
     if (!/^[A-Za-z0-9_]{3,16}$/.test(name)) {
       setAuthError("lo", "Username: 3-16 letters, numbers or underscores.");
@@ -3399,14 +3505,22 @@ function localSubmit() {
     }
     if (pass.length < 6) { setAuthError("lo", "Password must be at least 6 characters."); return; }
     if (pass !== pass2) { setAuthError("lo", "Those passwords do not match."); return; }
+    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)) {
+      setAuthError("lo", "That does not look like an email address.");
+      return;
+    }
   } else if (!name || !pass) {
-    setAuthError("lo", "Enter your username and password.");
+    setAuthError("lo", "Enter your username or email, and your password.");
     return;
   }
   const restore = armBusy(document.getElementById("lo-go"),
                           localMode === "register" ? "Creating…" : "Signing in…");
+  // On sign-in the one field takes either identifier; on sign-up it is the username
+  // (and the optional email, so the same field can be used next time).
   api("/api/account/" + (localMode === "register" ? "register" : "login"),
-      { username: name, password: pass }, 20000)
+      localMode === "register"
+        ? { username: name, password: pass, email: email || undefined }
+        : { identifier: name, username: name, password: pass }, 20000)
     .then(j => {
       const acct = adoptSession(j);
       setPending(null);
@@ -4181,7 +4295,7 @@ function renderArmory() {
     keys.forEach(k => grid.appendChild(armoryCard(k)));
     shop.appendChild(grid);
   };
-  [1, 2, 3, 4].forEach(rank => {
+  [1, 2, 3, 4, 5, 6].forEach(rank => {
     const keys = TOWER_ORDER.filter(k => TOWERS[k].rank === rank);
     if (keys.length) section("Armory · " + RANK_BRACKETS[rank], keys);
   });
@@ -4383,14 +4497,14 @@ const COSMETIC_CATS = [
 // Mythic drops stay under 1% on both crate types, by design.
 // Four tiers, steep price tags, and mythic odds still tiny on the cheap two.
 const CRATES = {
-  supply: { name: "Supply Crate", glyph: "📦", gems: 6, tier: 1,
+  supply: { name: "Supply Crate", glyph: "📦", gems: 10, tier: 1,
     desc: "6 💎, or free from every boss wave",
     odds: { common: 55, rare: 29, epic: 13.6, legendary: 2.0, mythic: 0.4 } },
-  royal:  { name: "Royal Chest",  glyph: "🎁", gems: 18, tier: 2, desc: "no commons at all",
+  royal:  { name: "Royal Chest",  glyph: "🎁", gems: 30, tier: 2, desc: "no commons at all",
     odds: { common: 30, rare: 38, epic: 24, legendary: 7.1, mythic: 0.9 } },
-  admiral: { name: "Admiral's Vault", glyph: "⚜️", gems: 45, tier: 4, desc: "rare or better, every time",
+  admiral: { name: "Admiral's Vault", glyph: "⚜️", gems: 80, tier: 4, desc: "rare or better, every time",
     odds: { common: 0, rare: 26, epic: 46, legendary: 26.5, mythic: 1.5 } },
-  reliquary: { name: "Mythic Reliquary", glyph: "🔮", gems: 120, tier: 5, desc: "epic floor · the only real mythic odds",
+  reliquary: { name: "Mythic Reliquary", glyph: "🔮", gems: 220, tier: 5, desc: "epic floor · the only real mythic odds",
     odds: { common: 0, rare: 0, epic: 34, legendary: 62, mythic: 4 } }
 };
 function cratesHeld() { let n = 0; Object.keys(CRATES).forEach(k => { n += G.crates[k] || 0; }); return n; }
@@ -4562,6 +4676,7 @@ function saveBoard(list) {
   try { localStorage.setItem(LB_KEY, JSON.stringify(list.slice(0, 25))); } catch (e) { /* storage blocked */ }
 }
 const BOARD_TABS = [
+  { id: "global",  label: "🌍 Global captains", special: "global" },
   { id: "wave",    label: "🏆 Highest wave",   sort: (a, b) => (b.wave - a.wave) || (b.gold - a.gold) },
   { id: "worth",   label: "⭐ Worth points",   special: "worth" },
   { id: "collection", label: "🎒 Collections", special: "collection" },
@@ -4572,7 +4687,98 @@ const BOARD_TABS = [
   { id: "arty",    label: "🏹 Best artillery", special: "arty" },
   { id: "runs",    label: "📜 All runs",       sort: (a, b) => b.at - a.at }
 ];
-let boardTab = "wave";
+let boardTab = "global";
+let globalSort = "wave";
+let globalBoard = null;      // last /api/leaderboard reply
+const GLOBAL_SORTS = [
+  ["wave", "Best wave"], ["score", "Overall score"], ["wealth", "Total wealth"],
+  ["gems", "Gems earned"], ["gold", "Gold earned"], ["worth", "Worth points"],
+  ["kills", "Ships sunk"], ["collection", "Collections"]
+];
+function globalValue(r, key) {
+  if (key === "wealth") return (r.gemsHeld || 0) * 1000 + (r.worth || 0);
+  if (key === "collection") return r.owned || 0;
+  return r[key] || 0;
+}
+// Fetch the server board (GET). Everything here is a registered profile, so offline
+// captains stay on the board with their rank.
+function apiGet(path, ms) {
+  const ctl = typeof AbortController === "function" ? new AbortController() : null;
+  const timer = ctl ? setTimeout(() => ctl.abort(), ms || 9000) : null;
+  return fetch(path, { signal: ctl ? ctl.signal : undefined })
+    .then(r => r.json())
+    .then(j => { if (timer) clearTimeout(timer); return j; })
+    .catch(e => { if (timer) clearTimeout(timer); throw e; });
+}
+function loadGlobalBoard(force) {
+  if (loadingGlobal) return;
+  if (globalBoard && !force && Date.now() - globalBoard.at < 20000) return;
+  loadingGlobal = true;
+  apiGet("/api/leaderboard")
+    .then(j => {
+      loadingGlobal = false;
+      if (!j || !j.ok) return;
+      globalBoard = { rows: j.rows || [], accounts: j.accounts || 0, at: Date.now() };
+      if (boardTab === "global" && overlayOpen("board")) renderBoardOverlay();
+      renderTopBar();
+    })
+    .catch(() => { loadingGlobal = false; });
+}
+let loadingGlobal = false;
+function renderGlobalBoard(body) {
+  loadGlobalBoard(false);
+  if (!globalBoard) {
+    body.appendChild(el("div", "lb-empty",
+      "Loading the global board from the server… every registered captain appears here, online or off."));
+    return;
+  }
+  const rows = globalBoard.rows.slice().sort((a, b) =>
+    (globalValue(b, globalSort) - globalValue(a, globalSort)) ||
+    (b.bestWave - a.bestWave) || (b.worth - a.worth) || (b.kills - a.kills));
+  const sorts = el("div", "lb-sorts");
+  sorts.appendChild(el("span", "inv-bar-label", "Rank by"));
+  GLOBAL_SORTS.forEach(([k, label]) => {
+    const b = el("button", "pick" + (globalSort === k ? " on" : ""), label);
+    b.onclick = () => { globalSort = k; renderBoardOverlay(); };
+    sorts.appendChild(b);
+  });
+  body.appendChild(sorts);
+  if (!rows.length) {
+    body.appendChild(el("div", "lb-empty", "No registered captains yet — be the first."));
+    return;
+  }
+  const me = (activeAccount() || {}).id;
+  const head = ["#", "Captain", "Best wave", "Waves", "💎", "🪙", "Sunk", "Worth", "Ships", "Last seen"];
+  const t = el("table", "lb");
+  const hr = el("tr");
+  head.forEach(h => hr.appendChild(el("th", null, h)));
+  t.appendChild(hr);
+  rows.slice(0, 50).forEach((r, i) => {
+    const tr = el("tr");
+    if (r.id === me) tr.className = "new";
+    tr.appendChild(el("td", null, MEDALS[i] || String(i + 1)));
+    const nameCell = el("td");
+    const dot = el("span", "dot" + (r.online ? " on" : ""));
+    dot.title = r.online ? "online now" : "offline";
+    nameCell.appendChild(dot);
+    nameCell.appendChild(el("span", r.id === me ? "me" : null, r.name + (r.id === me ? " (you)" : "")));
+    nameCell.appendChild(el("span", "prov", (r.provider === "google" ? "🔐" : "🔑")));
+    tr.appendChild(nameCell);
+    tr.appendChild(el("td", "v", String(r.bestWave)));
+    tr.appendChild(el("td", null, String(r.waves || 0)));
+    tr.appendChild(el("td", "gem", String(r.gems || 0)));
+    tr.appendChild(el("td", "g", String(r.gold || 0)));
+    tr.appendChild(el("td", null, String(r.kills || 0)));
+    tr.appendChild(el("td", null, fmtNum(r.worth || 0)));
+    tr.appendChild(el("td", null, (r.owned || 0) + "/" + 29));
+    tr.appendChild(el("td", null, r.lastSeen ? fmtWhen(r.lastSeen) : "—"));
+    t.appendChild(tr);
+  });
+  body.appendChild(t);
+  body.appendChild(el("div", "crate-note",
+    globalBoard.accounts + " registered captain(s) on this server — offline players keep their rank. " +
+    "The green dot marks who is connected right now; click Rank by to re-sort."));
+}
 function recordRun() {
   if (switchingProfile) return null;
   if (G.recorded || G.wave < 1) return null;
@@ -4742,8 +4948,8 @@ function renderBoardOverlay() {
   const tabHost = document.getElementById("board-tabs");
   const lifetimeGems = runs.reduce((s, r) => s + (r.gems || 0), 0);
   document.getElementById("board-sub").textContent =
-    runs.length + " recorded run" + (runs.length === 1 ? "" : "s") +
-    " · 💎 " + lifetimeGems + " gems banked all-time · saved in this browser";
+    runs.length + " run" + (runs.length === 1 ? "" : "s") + " in this browser · 💎 " + lifetimeGems +
+    " gems banked here" + (globalBoard ? " · 🌍 " + globalBoard.accounts + " registered captain(s) on the server" : "");
 
   tabHost.textContent = "";
   BOARD_TABS.forEach(t => {
@@ -4754,10 +4960,13 @@ function renderBoardOverlay() {
 
   body.textContent = "";
   const tab = BOARD_TABS.find(t => t.id === boardTab) || BOARD_TABS[0];
+  if (tab.special === "global") { renderGlobalBoard(body); return; }
   if (tab.special === "worth") { renderWorthBoard(body); return; }
   if (tab.special === "collection") { renderCollectionBoard(body); return; }
   if (!runs.length) {
-    body.appendChild(el("div", "lb-empty", "Nothing recorded yet — play a wave and it lands here automatically."));
+    body.appendChild(el("div", "lb-empty",
+      "No runs recorded in this browser yet — play a wave and it lands here, or open the Global captains tab " +
+      "to see every registered captain."));
     return;
   }
 
@@ -5375,6 +5584,7 @@ function ui() {
   document.getElementById("ui-gold").textContent = Math.floor(G.gold);
   document.getElementById("ui-lives").textContent = Math.max(0, G.lives);
   document.getElementById("ui-wave").textContent = G.wave;
+  refreshSaveLine();      // the subtle cloud-save readout, next to the core stats
   for (const k of ALL_TOWERS) {
     const card = document.querySelector('.card[data-tower="' + k + '"]');
     if (!card) continue;
