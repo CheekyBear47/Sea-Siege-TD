@@ -520,7 +520,7 @@
     <span class="brand-mark">⚓</span>
     <span class="brand-text">Sea Siege<small>Tower Defense</small></span>
   </div>
-  <div class="top-wallet" id="top-wallet" title="Gems are earned by clearing waves and spent on cosmetics">
+  <div class="top-wallet" id="top-wallet" title="Gems are earned by clearing waves — a score, not a shop">
     <span class="gem-ico">💎</span><b id="top-gems">0</b><span class="top-wallet-lbl">gems</span>
   </div>
   <div class="top-wallet worth" id="top-worth" title="Worth points: the total value of every collectible you own">
@@ -528,7 +528,8 @@
   </div>
   <nav class="top-nav">
     <button class="top-btn" id="top-board">🏆 <span>Leaderboard</span></button>
-    <button class="top-btn" id="top-inv">🎒 <span>Inventory &amp; Skins</span></button>
+    <button class="top-btn" id="top-crates">🎁 <span>Crates</span></button>
+    <button class="top-btn" id="top-inv">📖 <span>Collection index</span></button>
     <button class="top-btn" id="top-trade">🤝 <span>Trading &amp; Players</span></button>
     <button class="top-btn profile-chip" id="top-profile" title="Account &amp; progress">
       <span class="avatar sm" id="chip-avatar">?</span><span id="chip-name">No account</span>
@@ -612,9 +613,23 @@
       <button class="btn primary" id="over-btn">Play Again</button>
       <button class="btn" id="over-board" style="display:block;margin:8px auto 0">🏅 Hall of Fame</button>
     </div></div>
+    <div id="crates"><div class="box">
+      <div class="board-head">
+        <div class="pf-head">
+          <h2>🎁 Crates</h2>
+          <div class="pf-id" id="crates-status">milestone rewards — spin them here</div>
+        </div>
+        <button class="btn tiny" id="crates-x" style="width:auto;padding:5px 10px">✕ Close</button>
+      </div>
+      <div id="crates-body"></div>
+      <div class="board-foot">
+        <span class="hint" style="flex:1;align-self:center">Crates are never sold — win them from boss waves and wave milestones, then spin them for collectibles.</span>
+        <button class="btn primary" id="crates-close">Done</button>
+      </div>
+    </div></div>
     <div id="inv"><div class="box">
       <div class="board-head">
-        <h2>Collection</h2>
+        <h2>Collection index</h2>
         <span class="wallet" id="inv-wallet">💎 0 gems</span>
         <button class="btn tiny" id="inv-x" style="width:auto;padding:5px 10px">✕ Close</button>
       </div>
@@ -626,7 +641,7 @@
       </div>
       <div id="inv-body"></div>
       <div class="board-foot">
-        <span class="hint" style="flex:1;align-self:center">Gems come only from clearing waves — cosmetics never change how the battle plays.</span>
+        <span class="hint" style="flex:1;align-self:center">An index of what you have found: every item is earned in play and nothing here changes how the battle plays.</span>
         <button class="btn" id="inv-reset">Reset profile</button>
         <button class="btn primary" id="inv-close">Done</button>
       </div>
@@ -1668,9 +1683,19 @@ function waveCleared() {
   if (G.wave >= WAVE_CAP && !G.won) { endGame(true); return; }
   G.phase = "repair";                      // the structured inter-wave repair window
   // a boss wave pays out a Supply Crate for the crate room
-  if (G.waveHadBoss) {
-    G.crates.supply = (G.crates.supply || 0) + 1;
-    toast("📦 Supply Crate secured — " + G.crates.supply + " in the hold. Open it in Inventory & Skins → Crates.");
+  // Crates are milestone rewards, never purchases: boss waves, then every 10/25/100 waves.
+  const earned = [];
+  const grant = kind => {
+    G.crates[kind] = (G.crates[kind] || 0) + 1;
+    earned.push(CRATES[kind].glyph + " " + CRATES[kind].name);
+  };
+  if (G.waveHadBoss) grant("supply");
+  if (G.wave % 10 === 0) grant("royal");
+  if (G.wave % 25 === 0) grant("admiral");
+  if (G.wave % 100 === 0) grant("reliquary");
+  if (earned.length) {
+    toast("🏆 Wave " + G.wave + " reward: " + earned.join(" · ") + " — spin it in the Crates tab.");
+    banner("Crate earned!", "#ffd166");
   }
   if (G.auto) setTimeout(() => { if (!G.over) startWave(); }, 1400);
 }
@@ -3697,7 +3722,7 @@ function showProfile(on) {
 }
 // Only one top-bar screen is ever on screen: opening one closes the others, and the
 // bar highlights whichever is showing.
-const OVERLAY_IDS = ["board", "inv", "trade", "profile"];
+const OVERLAY_IDS = ["board", "crates", "inv", "trade", "profile"];
 function overlayOpen(id) {
   const el2 = document.getElementById(id);
   return !!el2 && el2.classList.contains("on");
@@ -3710,7 +3735,8 @@ function closeOverlays(except) {
   });
 }
 function syncTopTabs() {
-  [["top-board", "board"], ["top-inv", "inv"], ["top-trade", "trade"], ["top-profile", "profile"]]
+  [["top-board", "board"], ["top-crates", "crates"], ["top-inv", "inv"], ["top-trade", "trade"],
+   ["top-profile", "profile"]]
     .forEach(([btn, id]) => {
       const b = document.getElementById(btn);
       if (b) b.classList.toggle("on", overlayOpen(id));
@@ -3721,6 +3747,7 @@ function toggleOverlay(id) {
   audioInit();
   const open = overlayOpen(id);
   if (id === "board") showBoard(!open);
+  else if (id === "crates") showCrates(!open);
   else if (id === "inv") showInv(!open);
   else if (id === "trade") showTrade(!open);
   else showProfile(!open);
@@ -4379,20 +4406,18 @@ const GEM_REWARD_BOSS = 3;
 /* --------------------------- rarity & worth points ------------------------ */
 // Every collectible carries a rarity; rarity sets its Worth Points and its crate
 // odds. Nothing here touches combat balance.
-// Rarity sets both sides of an item's value: what it is worth (points) and what it
-// costs to unlock (gems). Every collectible simply carries a rarity.
+// Rarity is worth points only: collectibles are found in crates, never bought, and
+// gems are a score rather than a currency.
 const RARITY = {
-  common:    { name: "Common",    pts: 10,    gems: 3,  col: "#9fb4c7" },
-  rare:      { name: "Rare",      pts: 50,    gems: 7,  col: "#69b8ff" },
-  epic:      { name: "Epic",      pts: 250,   gems: 16, col: "#c39bff" },
-  legendary: { name: "Legendary", pts: 1200,  gems: 35, col: "#ffd166" },
-  mythic:    { name: "Mythic",    pts: 10000, gems: 0,  col: "#ff7ad9" }
+  common:    { name: "Common",    pts: 10,    col: "#9fb4c7" },
+  rare:      { name: "Rare",      pts: 50,    col: "#69b8ff" },
+  epic:      { name: "Epic",      pts: 250,   col: "#c39bff" },
+  legendary: { name: "Legendary", pts: 1200,  col: "#ffd166" },
+  mythic:    { name: "Mythic",    pts: 10000, col: "#ff7ad9" }
 };
 const RARITY_ORDER = ["common", "rare", "epic", "legendary", "mythic"];
 function rarityOf(item) { return RARITY[item.r] || RARITY.common; }
 function itemWorth(item) { return rarityOf(item).pts; }
-// Mythic cards are never bought - they only drop - so their gem price is 0.
-function cosCost(item) { return item.crateOnly ? 0 : rarityOf(item).gems; }
 
 const ENVIRONMENTS = {
   dawn: { name: "Dawn Coast", cost: 0, r: "common", weather: "none", tint: null,
@@ -4494,17 +4519,20 @@ const COSMETIC_CATS = [
 ];
 
 /* ------------------------- supply crates & chests ------------------------- */
-// Mythic drops stay under 1% on both crate types, by design.
-// Four tiers, steep price tags, and mythic odds still tiny on the cheap two.
+// Mythic drops stay under 1% on the cheap two, by design.
+// Four tiers, all won in play (boss waves and 10/25/100-wave milestones) - none is for sale.
 const CRATES = {
-  supply: { name: "Supply Crate", glyph: "📦", gems: 10, tier: 1,
-    desc: "6 💎, or free from every boss wave",
+  supply: { name: "Supply Crate", glyph: "📦", tier: 1, from: "it drops from every boss wave",
+    desc: "every boss wave",
     odds: { common: 55, rare: 29, epic: 13.6, legendary: 2.0, mythic: 0.4 } },
-  royal:  { name: "Royal Chest",  glyph: "🎁", gems: 30, tier: 2, desc: "no commons at all",
+  royal:  { name: "Royal Chest",  glyph: "🎁", tier: 2, from: "it drops every 10th wave cleared",
+    desc: "every 10 waves",
     odds: { common: 30, rare: 38, epic: 24, legendary: 7.1, mythic: 0.9 } },
-  admiral: { name: "Admiral's Vault", glyph: "⚜️", gems: 80, tier: 4, desc: "rare or better, every time",
+  admiral: { name: "Admiral's Vault", glyph: "⚜️", tier: 4, from: "it drops every 25th wave cleared",
+    desc: "every 25 waves · rare or better",
     odds: { common: 0, rare: 26, epic: 46, legendary: 26.5, mythic: 1.5 } },
-  reliquary: { name: "Mythic Reliquary", glyph: "🔮", gems: 220, tier: 5, desc: "epic floor · the only real mythic odds",
+  reliquary: { name: "Mythic Reliquary", glyph: "🔮", tier: 5, from: "it drops every 100th wave cleared",
+    desc: "every 100 waves · epic floor",
     odds: { common: 0, rare: 0, epic: 34, legendary: 62, mythic: 4 } }
 };
 function cratesHeld() { let n = 0; Object.keys(CRATES).forEach(k => { n += G.crates[k] || 0; }); return n; }
@@ -5053,38 +5081,22 @@ function equipCosmetic(cat, id) {
   ui();
   renderInventory();
 }
-function buyOrEquip(cat, id) {
+// Nothing is purchasable any more: this only equips what the collection already holds.
+function equipOwned(cat, id) {
   const info = COSMETIC_CATS.find(c => c.id === cat);
   const item = info.items[id];
-  if (item.crateOnly) {
-    sfx("deny");
-    toast(item.name + " only drops from a crate — " +
-      (G.crates.supply > 0 ? "open your Supply Crate 📦" : "clear a boss wave for a Supply Crate 📦") +
-      " or buy a Royal Chest 🎁 with gems.");
-    return;
-  }
-  if (info.noEquip) return;
+  if (!info || info.noEquip) return;
   if (!unlocked(cat, id)) {
-    const price = cosCost(item);
-    if (G.gems < price) {
-      sfx("deny");
-      toast("Need " + (price - G.gems) + " more 💎 gems for " + item.name + " (" + rarityOf(item).name +
-            ", " + price + " 💎) — clear more waves or open a crate.");
-      renderInventory();
-      return;
-    }
-    G.gems -= price;
-    G.cosOwn[cosId(cat, id)] = true;
-    sfx("gem");
-    banner(item.name + " unlocked!", rarityOf(item).col);
-    toast("Unlocked " + rarityOf(item).name + " " + item.name + " for " + price + " 💎 — equipped.");
-    equipCosmetic(cat, id);
+    sfx("deny");
+    toast(item.name + " is a " + rarityOf(item).name + " collectible you have not found yet — it rolls " +
+          "out of a crate, and crates come from boss waves and wave milestones.");
     return;
   }
   equipCosmetic(cat, id);
 }
 /* --------------------------- opening crates ------------------------------- */
-// Both crate types roll a rarity first, then an *unowned* item of that rarity from
+// Crates are never sold - every one of them is won in play.
+// A crate rolls a rarity first, then an *unowned* item of that rarity from
 // every collectible in the game (mythic turret cards included). Mythic odds stay
 // under 1%. A full set refunds gems for the duplicate instead.
 function rollCrate(kind, silent) {
@@ -5092,22 +5104,12 @@ function rollCrate(kind, silent) {
   if (!crate) return null;
   const have = G.crates[kind] || 0;
   if (have <= 0) {
-    if (!crate.gems) {
-      sfx("deny");
-      toast("No " + crate.name + " in the hold — clear a boss wave to earn one.");
-      return null;
-    }
-    if (G.gems < crate.gems) {
-      sfx("deny");
-      toast("Need " + (crate.gems - G.gems) + " more 💎 for a " + crate.name + ".");
-      return null;
-    }
-    G.gems -= crate.gems;
-    sfx("coin");
-    toast("Bought a " + crate.name + " for " + crate.gems + " 💎.");
-  } else {
-    G.crates[kind] = have - 1;
+    // No shop: crates are earned in play (see the milestone drops in waveCleared).
+    sfx("deny");
+    toast("No " + crate.name + " in the hold — " + (crate.from || "earn one in play") + ".");
+    return null;
   }
+  G.crates[kind] = have - 1;
   const rar = pickRarity(crate.odds);
   const full = cratePool(rar);
   let pool = full.filter(x => !unlocked(x.cat, x.id));
@@ -5135,6 +5137,7 @@ function rollCrate(kind, silent) {
     sfx("coin");
     ui();
     renderInventory();
+    if (overlayOpen("crates")) renderCratesPanel();
   };
   // one crate at a time gets the rolling animation; bulk opens just report
   if (silent || rolling) { announce(); return pick; }
@@ -5212,13 +5215,13 @@ function renderCrates(body) {
     card.appendChild(el("div", "crate-glyph", crate.glyph));
     const meta = el("div", "crate-meta");
     meta.appendChild(el("b", null, crate.name));
-    meta.appendChild(el("span", null, "in the hold: " + (G.crates[kind] || 0) + " · " + crate.desc));
+    meta.appendChild(el("span", null, "in the hold: " + (G.crates[kind] || 0) + " · " + crate.from));
     const odds = el("span", "crate-odds");
     odds.textContent = RARITY_ORDER.map(r => RARITY[r].name.slice(0, 3) + " " + crate.odds[r] + "%").join(" · ");
     meta.appendChild(odds);
     card.appendChild(meta);
-    const btn = el("button", "btn tiny", (G.crates[kind] || 0) > 0 ? "Open" : (crate.gems ? "Buy · " + crate.gems + " 💎" : "None"));
-    btn.disabled = (G.crates[kind] || 0) <= 0 && (!crate.gems || G.gems < crate.gems);
+    const btn = el("button", "btn tiny", (G.crates[kind] || 0) > 0 ? "Spin it" : "Not in the hold");
+    btn.disabled = (G.crates[kind] || 0) <= 0;
     btn.onclick = () => rollCrate(kind);
     card.appendChild(btn);
     grid.appendChild(card);
@@ -5244,13 +5247,14 @@ function renderCrates(body) {
   const worths = el("div", "inv-legend");
   RARITY_ORDER.slice().reverse().forEach(rk => {
     worths.appendChild(el("span", "rarity " + rk, RARITY[rk].name + " = " + fmtNum(RARITY[rk].pts) +
-      " pts" + (rk === "mythic" ? " (turret card)" : " · " + RARITY[rk].gems + "💎")));
+      " pts" + (rk === "mythic" ? " (turret card)" : "")));
   });
   body.appendChild(worths);
   const note = el("div", "crate-note",
-    "Mythic turret cards stay under 1% on the Supply Crate and Royal Chest; the Admiral's Vault and the " +
-    "Mythic Reliquary are the only places the odds really move. Supply Crates still drop from boss waves, " +
-    "and duplicates refund gems, so a crate is never wasted.");
+    "Nothing here is for sale. Supply Crates drop from every boss wave, Royal Chests every 10 waves, " +
+    "Admiral's Vaults every 25 and a Mythic Reliquary every 100. Mythic turret cards stay under 1% on the " +
+    "cheap two; the Vault and the Reliquary are where the odds really move. A duplicate refunds gems, so a " +
+    "crate is never wasted.");
   body.appendChild(note);
   const last = G.lastDrop;
   if (last) {
@@ -5307,26 +5311,6 @@ function renderInvBar(body, cat) {
   const info = el("div", "inv-bar-row");
   info.appendChild(el("span", "inv-cat", "This category: " + own + "/" + total + " owned · ⭐ " +
     fmtNum(pts) + " of " + fmtNum(max) + " pts (" + Math.round((pts / (max || 1)) * 100) + "%)"));
-  // bulk unlock: spend gems on everything affordable, most valuable first
-  if (!cat.noEquip) {
-    const affordable = Object.entries(cat.items)
-      .filter(([id, it]) => !unlocked(cat.id, id) && !it.crateOnly && cosCost(it) <= G.gems)
-      .sort((a, b) => itemWorth(b[1]) - itemWorth(a[1]));
-    const bulk = el("button", "pick on", affordable.length ? "Unlock " + affordable.length + " affordable" : "Nothing affordable");
-    bulk.disabled = !affordable.length;
-    bulk.onclick = () => {
-      let spent = 0;
-      affordable.forEach(([id, it]) => {
-        if (G.gems < cosCost(it)) return;
-        G.gems -= cosCost(it); spent += cosCost(it);
-        G.cosOwn[cosId(cat.id, id)] = true;
-      });
-      sfx("gem");
-      toast("Unlocked " + affordable.length + " item(s) for " + spent + " 💎 — " + cat.label.replace(/^\S+\s/, ""));
-      queueSave(); ui(); renderInventory();
-    };
-    info.appendChild(bulk);
-  }
   bar.appendChild(info);
   const legend = el("div", "inv-legend");
   RARITY_ORDER.slice().reverse().forEach(rk => {
@@ -5334,7 +5318,7 @@ function renderInvBar(body, cat) {
     const tot = Object.entries(cat.items).filter(([, it]) => (it.r || "common") === rk).length;
     if (!tot) return;
     legend.appendChild(el("span", "rarity " + rk, RARITY[rk].name + " " + fmtNum(RARITY[rk].pts) +
-      " pts · " + RARITY[rk].gems + "💎 · " + n + "/" + tot));
+      " pts · " + n + "/" + tot + " found"));
   });
   bar.appendChild(legend);
   body.appendChild(bar);
@@ -5358,11 +5342,10 @@ function renderInventory() {
   const c = cosCount();
   const crates = cratesHeld();
   document.getElementById("inv-sub").textContent =
-    c.own + " of " + c.total + " collectibles · ⭐ " + fmtNum(worthTotal()) + " worth points · " +
-    G.gems + " gems to spend · " + crates + " crate" + (crates === 1 ? "" : "s");
+    c.own + " of " + c.total + " discovered · ⭐ " + fmtNum(worthTotal()) + " worth points · 💎 " +
+    G.gems + " banked · 🎁 " + crates + " crate" + (crates === 1 ? "" : "s") + " to spin in the Crates tab";
   fillSelect("inv-cat",
-    [["all", "All categories"]].concat(COSMETIC_CATS.map(cat => [cat.id, cat.label]))
-      .concat([["crate", crates ? "🎁 Crates (" + crates + ")" : "🎁 Crates"]]), invCat);
+    [["all", "All categories"]].concat(COSMETIC_CATS.map(cat => [cat.id, cat.label])), invCat);
   fillSelect("inv-filter", [["all", "All items"], ["owned", "Owned only"], ["locked", "Not yet owned"]], invFilter);
   fillSelect("inv-sort", [["rarity", "Rarity (Mythic → Common)"], ["value", "Worth points"],
     ["name", "Name"]], invSort);
@@ -5372,7 +5355,6 @@ function renderInventory() {
   bind("inv-sort", e => { invSort = e.target.value; renderInventory(); });
   const body = document.getElementById("inv-body");
   body.textContent = "";
-  if (invCat === "crate") { renderCrates(body); return; }
   if (invCat === "all") {
     COSMETIC_CATS.forEach(cat => {
       body.appendChild(el("div", "sect2", cat.label));
@@ -5401,25 +5383,44 @@ function cosGrid(cat) {
     const nameRow = el("span", "cos-name", item.name);
     meta.appendChild(nameRow);
     meta.appendChild(el("span", "rarity " + (item.r || "common"), rarityOf(item).name + " · " + itemWorth(item) + " pts"));
-    meta.appendChild(el("span", "cos-cost", own ? (equipped ? "Equipped ✓" : "Owned")
-      : (item.crateOnly ? "📦 crate drop only" : "💎 " + cosCost(item) + " gems")));
+    // an index entry: what it is, what it is worth, and whether you have found it
+    meta.appendChild(el("span", "cos-cost", own
+      ? (equipped ? "In use ✓" : "In your collection ✓")
+      : "Not found yet · 📦 rolls from a crate"));
     card.appendChild(meta);
     let btn;
-    if (item.crateOnly) {
-      btn = el("button", "btn tiny", own ? "Owned" : "Crate only");
-      btn.disabled = true;
-    } else if (cat.noEquip) {
-      btn = el("button", "btn tiny", own ? "Owned" : "Locked");
+    if (item.crateOnly || cat.noEquip) {
+      btn = el("button", "btn tiny", own ? "Found" : "Not found");
       btn.disabled = true;
     } else {
-      btn = el("button", "btn tiny" + (equipped ? " on" : ""), equipped ? "Equipped" : (own ? "Equip" : "Unlock"));
-      btn.disabled = equipped || (!own && G.gems < cosCost(item));
-      btn.onclick = () => buyOrEquip(cat.id, id);
+      btn = el("button", "btn tiny" + (equipped ? " on" : ""), equipped ? "In use" : "Equip");
+      btn.disabled = equipped || !own;
+      btn.onclick = () => equipOwned(cat.id, id);
     }
     card.appendChild(btn);
     grid.appendChild(card);
   }
   return grid;
+}
+// The Crates tab: its own screen for the crates you have earned.
+function showCrates(on) {
+  const visible = on !== false;
+  if (visible) closeOverlays("crates");
+  document.getElementById("crates").classList.toggle("on", visible);
+  if (visible) renderCratesPanel();
+  syncTopTabs();
+}
+function renderCratesPanel() {
+  const body = document.getElementById("crates-body");
+  if (!body) return;
+  body.textContent = "";
+  const status = document.getElementById("crates-status");
+  if (status) {
+    const held = cratesHeld();
+    status.textContent = held ? held + " in the hold — spin one below"
+      : "empty hold · boss waves and every 10/25/100 waves refill it";
+  }
+  renderCrates(body);
 }
 function showInv(on) {
   const visible = on !== false;
@@ -5846,6 +5847,9 @@ document.getElementById("un-name").addEventListener("keydown", ev => {
 document.getElementById("google-play").onclick = () => { audioInit(); promptGoogle(); };
 document.getElementById("top-profile").onclick = () => toggleOverlay("profile");
 document.getElementById("top-trade").onclick = () => toggleOverlay("trade");
+document.getElementById("top-crates").onclick = () => toggleOverlay("crates");
+document.getElementById("crates-x").onclick = () => showCrates(false);
+document.getElementById("crates-close").onclick = () => showCrates(false);
 document.getElementById("trade-x").onclick = () => showTrade(false);
 document.getElementById("pf-close").onclick = () => showProfile(false);
 document.getElementById("pf-x").onclick = () => showProfile(false);

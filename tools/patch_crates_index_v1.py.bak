@@ -1,0 +1,122 @@
+# Dedicated Crates tab, no gem cash-shop anywhere, and the inventory reframed as a
+# pure collection index. Crates now come from wave milestones.
+import pathlib
+
+p = pathlib.Path("index.html")
+s = p.read_text(encoding="utf-8")
+miss = []
+
+
+def sub(old, new, why=""):
+    global s
+    if old not in s:
+        miss.append(why or old[:70])
+        return
+    s = s.replace(old, new, 1)
+
+
+# ================================================================ 1. Crates tab
+sub("""    <button class="top-btn" id="top-board">🏆 <span>Leaderboard</span></button>
+    <button class="top-btn" id="top-inv">🎒 <span>Inventory &amp; Skins</span></button>""",
+    """    <button class="top-btn" id="top-board">🏆 <span>Leaderboard</span></button>
+    <button class="top-btn" id="top-crates">🎁 <span>Crates</span></button>
+    <button class="top-btn" id="top-inv">📖 <span>Collection index</span></button>""", "top bar buttons")
+
+sub("""  <div class="top-wallet" id="top-wallet" title="Gems are earned by clearing waves and spent on cosmetics">""",
+    """  <div class="top-wallet" id="top-wallet" title="Gems are earned by clearing waves — they are a score, not a shop">""",
+    "wallet tooltip")
+
+sub("""    <div id="inv"><div class="box">
+      <div class="board-head">
+        <h2>Collection</h2>""",
+    """    <div id="crates"><div class="box">
+      <div class="board-head">
+        <div class="pf-head">
+          <h2>🎁 Crates</h2>
+          <div class="pf-id" id="crates-status">milestone rewards — spin them here</div>
+        </div>
+        <button class="btn tiny" id="crates-x" style="width:auto;padding:5px 10px">✕ Close</button>
+      </div>
+      <div id="crates-body"></div>
+      <div class="board-foot">
+        <span class="hint" style="flex:1;align-self:center">Crates are never sold: win them from boss waves and wave milestones, then spin them for collectibles.</span>
+        <button class="btn primary" id="crates-close">Done</button>
+      </div>
+    </div></div>
+    <div id="inv"><div class="box">
+      <div class="board-head">
+        <h2>Collection index</h2>""", "crates overlay")
+
+sub("""const OVERLAY_IDS = ["board", "inv", "trade", "profile"];""",
+    """const OVERLAY_IDS = ["board", "crates", "inv", "trade", "profile"];""", "OVERLAY_IDS")
+
+sub("""  [["top-board", "board"], ["top-inv", "inv"], ["top-trade", "trade"], ["top-profile", "profile"]]""",
+    """  [["top-board", "board"], ["top-crates", "crates"], ["top-inv", "inv"], ["top-trade", "trade"],
+   ["top-profile", "profile"]]""", "syncTopTabs")
+
+sub("""  if (id === "board") showBoard(!open);
+  else if (id === "inv") showInv(!open);""",
+    """  if (id === "board") showBoard(!open);
+  else if (id === "crates") showCrates(!open);
+  else if (id === "inv") showInv(!open);""", "toggleOverlay")
+
+# ============================================ 2. no gems as a cash shop anywhere
+# (a) crate purchases: gone. Crates drop from milestones instead.
+sub("""  const have = G.crates[kind] || 0;
+  if (have <= 0) {
+    if (!crate.gems) {
+      sfx("deny");
+      toast("No " + crate.name + " in the hold — clear a boss wave to earn one.");
+      return null;
+    }
+    if (G.gems < crate.gems) {
+      sfx("deny");
+      toast("Need " + (crate.gems - G.gems) + " more 💎 for a " + crate.name + ".");
+      return null;
+    }
+    G.gems -= crate.gems;
+    sfx("coin");
+    toast("Bought a " + crate.name + " for " + crate.gems + " 💎.");
+  } else {
+    G.crates[kind] = have - 1;
+  }""",
+    """  const have = G.crates[kind] || 0;
+  if (have <= 0) {
+    // There is no shop: crates are earned in play (see the milestone drops in waveCleared).
+    sfx("deny");
+    toast("No " + crate.name + " in the hold — " + (crate.from || "earn one in play") + ".");
+    return null;
+  }
+  G.crates[kind] = have - 1;""", "rollCrate purchase")
+
+# (b) cosmetic purchases: gone. Cards only equip what you own.
+sub("""function buyOrEquip(cat, id) {""", """function equipOwned(cat, id) {""", "buyOrEquip rename")
+
+# (c) the bulk "unlock everything affordable" shortcut: gone
+sub("""  // bulk unlock: spend gems on everything affordable, most valuable first
+  if (!cat.noEquip) {
+    const affordable = Object.entries(cat.items)
+      .filter(([id, it]) => !unlocked(cat.id, id) && !it.crateOnly && cosCost(it) <= G.gems)
+      .sort((a, b) => itemWorth(b[1]) - itemWorth(a[1]));
+    const bulk = el("button", "pick on", affordable.length ? "Unlock " + affordable.length + " affordable" : "Nothing affordable");
+    bulk.disabled = !affordable.length;
+    bulk.onclick = () => {
+      let spent = 0;
+      affordable.forEach(([id, it]) => {
+        if (G.gems < cosCost(it)) return;
+        G.gems -= cosCost(it); spent += cosCost(it);
+        G.cosOwn[cosId(cat.id, id)] = true;
+      });
+      sfx("gem");
+      toast("Unlocked " + affordable.length + " item(s) for " + spent + " 💎 — " + cat.label.replace(/^\\S+\\s/, ""));
+      queueSave(); ui(); renderInventory();
+    };
+    info.appendChild(bulk);
+  }
+  bar.appendChild(info);""", """  bar.appendChild(info);""", "bulk unlock")
+
+# (d) the whole purchase branch inside the old buyOrEquip / equip path
+sub("""    const price = cosCost(item);""", """    const price = 0;   // no prices any more - everything is earned""", "price ref")
+
+p.write_text(s, encoding="utf-8")
+print("missed anchors:", miss if miss else "none")
