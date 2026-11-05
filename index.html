@@ -81,6 +81,10 @@
   .rarity.epic{background:rgba(195,155,255,.2);color:#d9c2ff}
   .rarity.legendary{background:rgba(255,209,102,.18);color:#ffd166}
   .rarity.mythic{background:rgba(255,122,217,.2);color:#ffb3e6}
+  /* Secret: pitch black, thin light edge - it should read as "you should not have this" */
+  .rarity.secret{background:#050506;color:#e8e8ee;border:1px solid rgba(200,205,225,.35);
+    box-shadow:0 0 0 1px rgba(0,0,0,.9) inset, 0 0 12px rgba(255,255,255,.06)}
+  .rarity.secret::before{content:"◆ ";color:#cfd3e6}
   /* crates */
   .crate-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
   @media (max-width:900px){ .crate-grid{grid-template-columns:1fr} }
@@ -582,36 +586,56 @@
   @media (max-width:1080px){ #panel{width:290px;flex-basis:290px} }
 
   /* ---------------------------- chat & mini-profile ------------------------ */
+  /* ---- Discord-style chat: dark, compact, grouped message rows ---- */
   #chat{
     position:absolute;inset:0;display:none;justify-items:center;align-items:start;border-radius:16px;z-index:6;
-    background:radial-gradient(700px 460px at 50% 30%, rgba(10,24,40,.88), rgba(3,6,11,.96));
+    background:radial-gradient(700px 460px at 50% 30%, rgba(8,12,20,.9), rgba(2,3,6,.97));
     backdrop-filter:blur(5px);padding:16px 0 20px;overflow:auto;
   }
   #chat.on{display:grid}
   #chat .box{
-    text-align:left;padding:18px 22px 14px;border-radius:18px;max-width:760px;width:min(94%,760px);
-    max-height:92%;overflow:hidden;display:flex;flex-direction:column;gap:10px;
-    background:var(--glass);border:1px solid var(--stroke);
+    text-align:left;padding:0;border-radius:16px;max-width:880px;width:min(96%,880px);
+    max-height:92%;overflow:hidden;display:flex;flex-direction:column;gap:0;
+    background:#0d1117;border:1px solid rgba(255,255,255,.07);
+    box-shadow:0 26px 60px rgba(0,0,0,.7);
   }
-  #chat h2{margin:0;font-size:20px;letter-spacing:3px;text-transform:uppercase}
-  .chat-body{display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1 1 auto;
-    min-height:180px;max-height:52vh;padding-right:4px;-webkit-overflow-scrolling:touch}
-  .chat-row{display:flex;gap:9px;align-items:flex-start;padding:8px 10px;border-radius:12px;
-    background:rgba(255,255,255,.035);border:1px solid var(--stroke);cursor:pointer}
-  .chat-row:hover{background:rgba(120,180,255,.1)}
-  .chat-row.mine{border-color:rgba(87,224,138,.4);background:rgba(30,70,50,.28)}
-  .chat-row .avatar{flex:0 0 auto}
-  .chat-main{min-width:0;flex:1 1 auto}
-  .chat-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-  .chat-name{font-weight:800;font-size:12px;color:#eaf6ff}
-  .chat-worth{font-size:10px;color:#ffd166;font-weight:700;white-space:nowrap}
-  .chat-time{font-size:9.5px;color:var(--dim);margin-left:auto;white-space:nowrap}
-  .chat-text{font-size:12px;color:#dceaf7;line-height:1.45;margin-top:3px;overflow-wrap:anywhere}
-  .chat-send{display:flex;gap:8px;align-items:center}
+  #chat .board-head{padding:14px 18px 12px;margin:0;border-bottom:1px solid rgba(255,255,255,.06)}
+  #chat h2{margin:0;font-size:16px;letter-spacing:.4px;text-transform:none;color:#f2f3f5}
+  #chat .pf-id{font-size:11px;color:#8b93a1}
+  #chat .board-foot{padding:10px 18px 14px;margin:0;border-top:1px solid rgba(255,255,255,.06)}
+  .chat-body{display:flex;flex-direction:column;overflow-y:auto;flex:1 1 auto;
+    min-height:200px;max-height:56vh;padding:12px 8px 16px 18px;-webkit-overflow-scrolling:touch;
+    scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.14) transparent}
+  .chat-body::-webkit-scrollbar{width:9px}
+  .chat-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:9px}
+  /* a grouped row carries no header, Discord-style */
+  .chat-row{display:block;padding:2px 10px 2px 8px;border-radius:5px;cursor:pointer;position:relative}
+  .chat-row:hover{background:rgba(255,255,255,.045)}
+  .chat-row.group-start{margin-top:14px}
+  .chat-row.cont::before{
+    content:"";position:absolute;left:18px;right:10px;top:-1px;height:1px;
+    background:transparent;
+  }
+  .chat-row.cont{padding-left:52px}
+  .chat-head{display:flex;align-items:center;gap:9px;min-width:0;margin-bottom:1px}
+  .chat-row .avatar{flex:0 0 auto;width:30px;height:30px;font-size:12px}
+  .chat-name{font-weight:700;font-size:13.5px;color:#f2f3f5}
+  .chat-name.mine{color:#8ee6b0}
+  .chat-worth{font-size:10px;color:#ffd166;font-weight:700;white-space:nowrap;
+    padding:1px 7px;border-radius:7px;background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.22)}
+  .chat-time{font-size:10px;color:#7a8291;white-space:nowrap}
+  .chat-text{font-size:13.5px;color:#dbdee1;line-height:1.45;overflow-wrap:anywhere;
+    padding-left:39px;margin-top:-2px}
+  .chat-row.cont .chat-text{padding-left:0}
+  .chat-hint{font-size:10px;color:#5c6370;padding-left:39px;margin-top:2px}
+  .chat-send{display:flex;gap:8px;align-items:center;padding:12px 18px 4px}
   .chat-send input{
-    flex:1 1 auto;min-width:0;padding:10px 12px;border-radius:11px;font:inherit;font-size:12.5px;
-    color:var(--txt);background:rgba(8,16,28,.7);border:1px solid var(--stroke);
+    flex:1 1 auto;min-width:0;padding:11px 13px;border-radius:9px;font:inherit;font-size:13px;
+    color:#f2f3f5;background:#1e232b;border:1px solid rgba(255,255,255,.06);
   }
+  .chat-send input::placeholder{color:#6b7280}
+  .chat-send .btn{border-radius:9px;background:#4b6bff;border-color:#4b6bff;color:#fff;font-weight:700}
+  .chat-row .avatar{background:linear-gradient(150deg,#5865f2,#404ece)}
   .chat-empty{color:var(--dim);font-size:11.5px;padding:14px 4px;text-align:center}
   .mini-card{
     position:fixed;z-index:40;display:none;width:min(300px,88vw);padding:14px;border-radius:16px;
@@ -634,6 +658,9 @@
   }
   .pfp:hover{filter:brightness(1.25)}
   .pfp.on{border-color:#57e08a;box-shadow:0 0 0 1px rgba(87,224,138,.6)}
+  .cycle-line{margin-top:6px;padding:6px 9px;border-radius:9px;font-size:10.5px;font-weight:800;
+    text-align:center;color:#ffb3b3;background:rgba(60,20,20,.4);border:1px solid rgba(255,120,120,.3)}
+  .cycle-line.hot{color:#bffbdc;background:rgba(20,60,40,.45);border-color:rgba(87,224,138,.4)}
   .btn.danger{border-color:rgba(255,120,120,.45);color:#ffd7d7}
   .btn.danger:disabled{opacity:.45}
   /* ============================ phones & tablets ============================
@@ -983,8 +1010,10 @@
         <button class="btn up tiny" id="up-rate">⏱ Speed +</button>
         <button class="btn up tiny" id="up-range">◎ Range +</button>
         <button class="btn up tiny" id="up-spec">★ Special</button>
+        <div class="cycle-line" id="s-cycle" hidden></div>
       </div>
       <button class="btn gold" id="up-tier">⬆ Upgrade Tier</button>
+      <button class="btn gold" id="up-max" title="Buy every upgrade you can afford, right now">⚡ Max All</button>
       <div class="grid2">
         <button class="btn tiny" id="move">↔ Relocate</button>
         <button class="btn tiny" id="sell">Sell +<span id="sell-val">0</span>🪙</button>
@@ -1241,10 +1270,12 @@ const TOWERS = {
     special: { name: "Deepfreeze", text: "much harder slow that also cracks armour." }
   },
   /* ---------- the five added turrets, one per tier I-V ---------- */
+  // Damage is 0 as requested. It still tracks and fires (so it works as a utility /
+    // decoy and can be upgraded like anything else) but it destroys nothing on its own.
   flakcutter: {
     name: "Flak Cutter", glyph: "🔫", cost: 160, rank: 1, kind: "Rapid",
-    dmg: 11, rate: 1.35, range: 150, color: "#bfe3ff", desc: "cheap, quick, relentless",
-    special: { name: "Flak Burst", text: "a snub fast-firer - more shots per coin than anything else." }
+    dmg: 0, rate: 1.35, range: 150, color: "#bfe3ff", desc: "a fast hull that deals no damage",
+    special: { name: "Flak Burst", text: "fires fast and often, but its shots carry no damage." }
   },
   pike: {
     name: "Pike Battery", glyph: "🎯", cost: 430, rank: 2, kind: "Piercing",
@@ -1297,6 +1328,21 @@ const TOWERS = {
     desc: "Foundry-forged shells that delete a squadron",
     special: { name: "Scrapstorm", text: "each shell leaves a burning killing field where it lands." }
   },
+  /* ---------- SECRET (crate drops only): 1 wave on, 3 waves off ---------- */
+  bear: {
+    name: "Bear Launcher", glyph: "🐻", cost: 4000, rank: 8, mythic: true, r: "secret",
+    kind: "Secret", dmg: 3000, rate: 2.1, range: 520, projSpeed: 300, projType: "stone",
+    splash: 300, minRange: 90, color: "#e8e8ee", waveCycle: { active: 1, cooldown: 3 },
+    desc: "lobs explosive bears. The best thing in the game — for one wave at a time.",
+    special: { name: "Bear Barrage", text: "a bear lands with a 300-radius bang, then the launcher reloads for three waves." }
+  },
+  crontomelon: {
+    name: "Crontomelon Launcher", glyph: "🍈", cost: 3400, rank: 8, mythic: true, r: "secret",
+    kind: "Secret", dmg: 2400, rate: 2.6, range: 500, projSpeed: 280, projType: "stone",
+    splash: 255, minRange: 90, color: "#dfe6d8", waveCycle: { active: 1, cooldown: 3 },
+    desc: "a lighter melon launcher on the same one-on / three-off cycle.",
+    special: { name: "Melon Volley", text: "less punch and a slower reload than the Bear, same strict cycle." }
+  },
   /* ---------- rank 7 — MYTHIC: crate drops only ---------- */
   trident: {
     name: "Poseidon's Trident Battery", glyph: "🔱", cost: 2000, rank: 7, mythic: true, kind: "Mythic",
@@ -1330,6 +1376,9 @@ const TOWER_ORDER = ["longbow", "slinger", "crossbow", "cannon", "harpoon",
                      // (which map to the first nine) do not shift under existing players
                      "flakcutter", "pike", "tidecaller", "scorpion", "obsidian"];
 const MYTHIC_ORDER = ["trident", "kraken", "sunfire", "leviathan"];
+// The Secret tier: two crate-only launchers. They are active for ONE wave and then sit
+// on cooldown for three, so a lucky drop is a burst of power rather than a permanent win.
+const SECRET_ORDER = ["bear", "crontomelon"];
 const ALL_TOWERS = TOWER_ORDER.concat(MYTHIC_ORDER);
 const RANK_BRACKETS = {
   1: "Tier I · 110–165 🪙", 2: "Tier II · 280–460 🪙", 3: "Tier III · 830–1,295 🪙",
@@ -1501,9 +1550,9 @@ function towerStats(t) {
 // a brutal one past wave 100, where only strict min-maxing survives.
 function enemyHpMul() {
   const w = Math.max(0, G.wave - 1);
-  let m = 1 + Math.pow(w, 1.52) * 0.34 + w * 0.06;
-  if (w > 50) m *= 1 + 0.055 * (w - 50);        // from wave 51: compounding, not creeping
-  if (w > 100) m *= 1 + 0.13 * (w - 100);       // from wave 101: brutal
+  let m = 1 + Math.pow(w, 1.52) * 0.30 + w * 0.055;   // eased off: the swarm was brutal
+  if (w > 50) m *= 1 + 0.045 * (w - 50);        // from wave 51: compounding, not creeping
+  if (w > 100) m *= 1 + 0.11 * (w - 100);       // from wave 101: brutal
   return m * DIFFICULTY[G.diff].hp;
 }
 function enemySpeedMul() {
@@ -1516,13 +1565,29 @@ function enemyArmorBonus() {
 }
 // Gold is scarce on purpose: kill money barely keeps up with the fleet's HP growth.
 function enemyGoldMul() { return (1 + 0.016 * (G.wave - 1) + 0.03 * G.globals.gold) * DIFFICULTY[G.diff].gold; }
-// Which Leviathan this is: the first at wave 15, the second at 30, and so on.
-function bossIndex() { return Math.max(1, Math.floor(G.wave / 15)); }
-function bossName() {
-  if (G.wave === 100) return "The Drowned Colossus";     // its own thing entirely
-  const k = bossIndex();
-  return k === 1 ? "Leviathan" : k === 2 ? "Elder Leviathan" : k === 3 ? "Dread Leviathan"
-    : "Leviathan Mk " + k;
+// The boss ladder. Type 0 means an ordinary wave:
+//   1  mini-boss    every 5 waves
+//   2  medium       wave 15
+//   3  stepped-up   every 25 waves (25, 75, 125 ...)
+//   4  major        waves 50 and 100
+function bossTier(n) {
+  if (n === BOSS_100_WAVE || n === 50) return 4;
+  if (n % 25 === 0) return 3;
+  if (n === 15) return 2;
+  if (n % 5 === 0) return 1;
+  return 0;
+}
+const BOSS_TIERS = {
+  1: { name: "Raider Leviathan", hp: 0.30, r: 0.72, gems: 6 },
+  2: { name: "Leviathan",        hp: 1.00, r: 1.00, gems: 12 },
+  3: { name: "Elder Leviathan",  hp: 2.40, r: 1.20, gems: 22 },
+  4: { name: "Dread Leviathan",  hp: 4.00, r: 1.55, gems: 45 }
+};
+function bossTierNow() { return bossTier(G.wave); }
+function bossName(n) {
+  const w = n === undefined ? G.wave : n;
+  if (w === BOSS_100_WAVE) return "The Drowned Colossus";   // its own thing entirely
+  return (BOSS_TIERS[bossTier(w)] || BOSS_TIERS[1]).name;
 }
 // The Wave 100 boss is a set-piece: exactly 500,000 health, no formula, so the number on
 // screen is the number in the fight.
@@ -1533,21 +1598,26 @@ const BOSS_100_WAVE = 100;
 // stops being a damage race and becomes an instant leak). The Wave 100 colossus is the
 // quick exception - still comfortably under the fleet it arrives with.
 function bossSpeedMul() {
+  const t = bossTierNow();
   const base = Math.min(1.9, 1 + 0.03 * Math.max(0, G.wave - 1));
-  return G.wave === BOSS_100_WAVE ? base * 1.15 : base * 0.8;
+  if (G.wave === BOSS_100_WAVE) return base * 1.15;      // the colossus moves with purpose
+  if (t === 4) return base * 1.0;                        // majors are not slow
+  if (t === 1) return base * 0.72;                       // mini-bosses are nimble
+  return base * 0.8;
 }
-// Bosses have their own scaling curve. They ride the wave curve like the fleet, but on
-// top of that each Leviathan is a step up on the last - so the one at wave 150 is a
-// different animal to the one at wave 15, and the end-game ones are genuine walls.
+// Bosses ride the wave curve like the fleet, then their tier multiplies on top, and
+// the stepped-up tier climbs again every 25 waves - so a Levy at 125 is a different
+// animal to the one at 25.
 function bossGrowth() {
-  const k = bossIndex() - 1;
-  return 1 + 0.22 * k + 0.06 * k * k;
+  const k = Math.max(1, Math.floor(G.wave / 25)) - 1;
+  return 1 + 0.18 * k + 0.05 * k * k;
 }
 function enemyHp(type) {
   const m = enemyHpMul();
   if (type === "boss") {
     if (G.wave === BOSS_100_WAVE) return BOSS_100_HP;   // exactly 500,000, as briefed
-    return Math.round(ENEMIES.boss.hp * (1 + (m - 1) * 0.55) * bossGrowth());
+    const tier = BOSS_TIERS[bossTierNow()] || BOSS_TIERS[1];
+    return Math.round(ENEMIES.boss.hp * (1 + (m - 1) * 0.55) * bossGrowth() * tier.hp);
   }
   return Math.round(ENEMIES[type].hp * m);
 }
@@ -1664,7 +1734,9 @@ function spawnEnemy(type, distAlong) {
     hpMax: hp, hp: hp,
     speed: b.speed * (type === "boss" ? bossSpeedMul() : enemySpeedMul()),
     armor: Math.min(0.72, b.armor + enemyArmorBonus()),
-    r: b.r * (type === "boss" && G.wave === BOSS_100_WAVE ? 1.55 : 1),
+    r: b.r * (type === "boss"
+      ? (G.wave === BOSS_100_WAVE ? 1.55 : (BOSS_TIERS[bossTierNow()] || BOSS_TIERS[1]).r)
+      : 1),
     gold: Math.round(b.gold * enemyGoldMul()), slowT: 0, slowAmt: 0,
     subPhase: rnd(0, 6), submerged: false, revealed: 0, hitFlash: 0, wake: rnd(0, 4),
     dead: false, bob: rnd(0, TAU), spawnScale: 0
@@ -1927,13 +1999,13 @@ function splashDamage(x, y, radius, dmg, mult, src, pierceArmor) {
 /* ---------------------------------- waves --------------------------------- */
 function waveComp(n) {
   const list = [];
-  const skiffs = 5 + Math.round(n * 1.35);
+  const skiffs = 4 + Math.round(n * 1.18);      // fewer hulls per wave: fairer, not easier
   for (let i = 0; i < skiffs; i++) list.push("skiff");
   if (n >= 3) for (let i = 0; i < 1 + Math.floor((n - 3) / 1.6); i++) list.push("galleon");
   if (n >= 4) for (let i = 0; i < 1 + Math.floor((n - 4) / 2.2); i++) list.push("sub");
-  // one Leviathan, every 15th wave: 15, 30, 45 ... up to the 10,000 cap - and always on
-  // wave 100, which is the briefed set-piece (100 is not a multiple of 15).
-  if (n % 15 === 0 || n === BOSS_100_WAVE) list.push("boss");
+  // The Leviathan schedule: a mini-boss every 5 waves, a medium at 15, a stepped-up one
+  // every 25, and the two majors at 50 and 100.
+  if (bossTier(n)) list.push("boss");
   // shuffle a little (keep the boss late)
   const last = list.filter(t => t === "boss");
   const rest = list.filter(t => t !== "boss");
@@ -1956,7 +2028,8 @@ function startWave() {
   banner(isBoss ? "⚠ Wave " + G.wave + " — " + bossName() + "!" : "Wave " + G.wave,
          isBoss ? "#ff9f9f" : "#8fd6ff");
   toast(isBoss
-    ? "🐋 " + bossName() + " incoming — " + fmtNum(enemyHp("boss")) + " HP. Boss waves land every 15."
+    ? "🐋 " + bossName() + " incoming — " + fmtNum(enemyHp("boss")) + " HP" +
+      (bossTierNow() >= 4 ? " · MAJOR BOSS" : " · boss tier " + bossTierNow()) + "."
     : "Wave " + G.wave + " incoming: " + comp.length + " ships");
   if (isBoss) setTimeout(() => sfx("boss"), 500);
   ui();
@@ -1974,7 +2047,9 @@ function waveCleared() {
   // is richer and Brutal really is tighter
   // Slashed hard: a wave pays a fraction of what it used to, so upgrades are earned.
   const bonus = Math.round((44 + G.wave * 15 + Math.round(G.globals.gold * 12)) * DIFFICULTY[G.diff].gold);
-  const gemGain = GEM_REWARD_WAVE + (G.waveHadBoss ? GEM_REWARD_BOSS : 0);
+  const bossPaid = G.waveHadBoss
+    ? ((BOSS_TIERS[bossTierNow()] || {}).gems || GEM_REWARD_BOSS) : 0;
+  const gemGain = GEM_REWARD_WAVE + bossPaid;
   G.gold += bonus;
   G.totalGold += bonus;
   G.gems += gemGain;
@@ -2094,6 +2169,8 @@ function update(dt) {
 
   // towers
   for (const t of G.towers) {
+    // A Secret launcher only fires on its active wave; the rest of the time it sits there.
+    if (!towerCharged(t)) { t.cd = Math.max(t.cd, 0.4); t.recoil = Math.max(0, (t.recoil || 0) - dt * 4); continue; }
     t.cd -= dt;
     t.recoil = Math.max(0, (t.recoil || 0) - dt * 4);
     const st = towerStats(t);
@@ -4119,6 +4196,8 @@ function renderProfile() {
     return RARITY[rk].name + " " + n + " × " + fmtNum(RARITY[rk].pts);
   }).join(" · "));
   row("Crates in the hold", (G.crates.supply || 0) + " 📦 supply · " + (G.crates.royal || 0) + " 🎁 royal");
+  row("Secret launchers", SECRET_ORDER.filter(k => G.cosOwn["turret:" + k] === true).length +
+    " / " + SECRET_ORDER.length + " found", "secret");
   row("Mythic turret cards", MYTHIC_ORDER.filter(k => G.cosOwn["turret:" + k] === true).length +
     " of " + MYTHIC_ORDER.length + " unlocked");
   const boards = loadBoard();
@@ -4740,6 +4819,27 @@ function showTrade(on) {
 // tradable item keyed "turret:<id>". Ranks 1-4 are always available to buy; rank 5
 // only appears usable once a crate has dropped it.
 function turretUnlocked(type) { return !TOWERS[type].mythic || G.cosOwn["turret:" + type] === true; }
+// Secret launchers are charged for one wave in every four (1 active + 3 cooldown).
+function towerCycle(type) {
+  const b = TOWERS[type];
+  return b && b.waveCycle ? b.waveCycle : null;
+}
+function towerCharged(t, wave) {
+  const cyc = towerCycle(t.type);
+  if (!cyc) return true;
+  if (t.builtWave === undefined) t.builtWave = G.wave;      // legacy tower or fresh build
+  const w = wave === undefined ? G.wave : wave;
+  const since = w - t.builtWave;
+  if (since <= 0) return true;
+  return since % (cyc.active + cyc.cooldown) === 0;
+}
+function towerCycleText(type, t) {
+  const cyc = towerCycle(type);
+  if (!cyc) return "";
+  if (!t) return cyc.active + " wave on · " + cyc.cooldown + " off";
+  return towerCharged(t) ? "⚡ ACTIVE this wave" : "cooldown · " +
+    ((cyc.active + cyc.cooldown) - ((G.wave - t.builtWave) % (cyc.active + cyc.cooldown))) + " wave(s)";
+}
 // The armory is an accordion: one tier open at a time by default, remembering what the
 // player had open, so the sidebar is a clean list of tiers instead of a wall of cards.
 const ARM_KEY = "seaSiege.armory.v1";
@@ -4777,6 +4877,7 @@ function renderArmory() {
     if (keys.length) section("Armory · " + RANK_BRACKETS[rank], keys, null, "r" + rank, rank === 1);
   });
   section("Mythic armory · crate drops only", MYTHIC_ORDER, "mythic-sect", "mythic", false);
+  section("Secret armory · crate drops only", SECRET_ORDER, "mythic-sect secret-sect", "secret", false);
 }
 // A locked mythic still tells you exactly what it is: a crate drop is a goal to chase,
 // not a mystery box.
@@ -4788,6 +4889,7 @@ function turretStatLine(type) {
   if (b.chain) bits.push("chains " + b.chain);
   if (b.slow) bits.push("slows " + Math.round(b.slow * 100) + "%");
   if (b.pierceBase) bits.push("pierces " + b.pierceBase);
+  if (b.waveCycle) bits.push(b.waveCycle.active + " wave on / " + b.waveCycle.cooldown + " off");
   return bits.join(" · ") + " — " + b.special.name;
 }
 function armoryCard(type) {
@@ -4798,17 +4900,20 @@ function armoryCard(type) {
   // A mythic is a sealed secret: no name, no art, no stats until it drops. Knowing
   // what it does is the reward for unlocking it.
   if (b.mythic && locked) {
-    card.title = "Mythic turret card — sealed until it drops from a crate.";
-    card.appendChild(el("div", "glyph", "❔"));
+    const sealedRk = (TOWERS[type] && TOWERS[type].r) || "mythic";
+    const sealedName = sealedRk === "secret" ? "Secret" : "Mythic";
+    card.title = sealedName + " turret card — sealed until it drops from a crate.";
+    card.appendChild(el("div", "glyph", sealedRk === "secret" ? "⬛" : "❔"));
     const myth = el("div", "meta");
     myth.appendChild(el("b", null, "？？？"));
-    myth.appendChild(el("span", "mysecret", "Mythic turret — stats, art and name stay sealed until it drops"));
+    myth.appendChild(el("span", "mysecret", sealedName +
+      " turret — stats, art and name stay sealed until it drops"));
     card.appendChild(myth);
     card.appendChild(el("div", "cost", "🔒 sealed"));
     card.onclick = () => {
       sfx("deny");
-      toast("Sealed mythic turret card — you'll see exactly what it is the moment it drops from a " +
-            "Supply Crate 📦 or Royal Chest 🎁.");
+      toast("Sealed " + sealedName.toLowerCase() + " card — you'll see exactly what it is the moment it " +
+            "drops. Only the expensive crates can roll it.");
     };
     return card;
   }
@@ -4851,21 +4956,26 @@ function turretTooltip(type) {
 // Gems are earned only by clearing waves and are spent only on cosmetics, so
 // nothing in this file changes combat balance.
 const GEM_REWARD_WAVE = 1;
-const GEM_REWARD_BOSS = 12;   // bosses land every 15th wave, so each one pays well
+// Bosses pay by tier now: a raider is pocket change, a major milestone is a payday.
+const GEM_REWARD_BOSS = 12;   // fallback when there is no boss tier (kept for old saves)
 
 /* --------------------------- rarity & worth points ------------------------ */
 // Every collectible carries a rarity; rarity sets its Worth Points and its crate
 // odds. Nothing here touches combat balance.
 // Rarity is worth points only: collectibles are found in crates, never bought, and
 // gems are a score rather than a currency.
+// Worth points are the ladder the leaderboard ranks on, so they are deliberately
+// stingy: a full collection is a long grind, not a weekend.
+// Secret sits above mythic: pitch black, two items only, the strongest things in the game.
 const RARITY = {
-  common:    { name: "Common",    pts: 10,    col: "#9fb4c7" },
-  rare:      { name: "Rare",      pts: 50,    col: "#69b8ff" },
-  epic:      { name: "Epic",      pts: 250,   col: "#c39bff" },
-  legendary: { name: "Legendary", pts: 1200,  col: "#ffd166" },
-  mythic:    { name: "Mythic",    pts: 10000, col: "#ff7ad9" }
+  common:    { name: "Common",    pts: 4,     col: "#9fb4c7" },
+  rare:      { name: "Rare",      pts: 18,    col: "#69b8ff" },
+  epic:      { name: "Epic",      pts: 70,    col: "#c39bff" },
+  legendary: { name: "Legendary", pts: 260,   col: "#ffd166" },
+  mythic:    { name: "Mythic",    pts: 900,   col: "#ff7ad9" },
+  secret:    { name: "Secret",    pts: 4000,  col: "#0a0a0c" }
 };
-const RARITY_ORDER = ["common", "rare", "epic", "legendary", "mythic"];
+const RARITY_ORDER = ["common", "rare", "epic", "legendary", "mythic", "secret"];
 function rarityOf(item) { return RARITY[item.r] || RARITY.common; }
 function itemWorth(item) { return rarityOf(item).pts; }
 
@@ -4954,8 +5064,14 @@ const WRAPS = {
 // Mythic turret cards are collectibles too: worth 10,000 pts, tradable, and the only
 // way to unlock the turret itself. They come out of crates and nowhere else.
 const TURRET_CARDS = {};
+// Both card tiers belong in the collection: without this the Secret launchers are not in
+// any crate pool, so they could never actually drop.
 MYTHIC_ORDER.forEach(k => {
   TURRET_CARDS[k] = { name: TOWERS[k].name, cost: null, r: "mythic", glyph: TOWERS[k].glyph,
+    crateOnly: true, noEquip: true };
+});
+SECRET_ORDER.forEach(k => {
+  TURRET_CARDS[k] = { name: TOWERS[k].name, cost: null, r: "secret", glyph: TOWERS[k].glyph,
     crateOnly: true, noEquip: true };
 });
 const COSMETIC_CATS = [
@@ -4984,12 +5100,20 @@ const CRATES = {
     desc: "rare or better, every time",
     odds: { common: 0, rare: 26, epic: 46, legendary: 26.5, mythic: 1.5 } },
   reliquary: { name: "Mythic Reliquary", glyph: "🔮", tier: 5, gems: 220,
-    desc: "epic floor — the only real mythic odds",
-    odds: { common: 0, rare: 0, epic: 34, legendary: 62, mythic: 4 } }
+    desc: "epic floor · the only real mythic odds",
+    odds: { common: 0, rare: 0, epic: 34, legendary: 62, mythic: 3.6, secret: 0.4 } },
+  relic:  { name: "Relic Coffer", glyph: "🗃️", tier: 3, gems: 45,
+    desc: "rare floor · a taste of legendary, nothing above it",
+    odds: { common: 0, rare: 62, epic: 31, legendary: 7, mythic: 0, secret: 0 } },
+  void:   { name: "Void Cache", glyph: "⬛", tier: 6, gems: 600,
+    desc: "the only crate with real Secret odds",
+    odds: { common: 0, rare: 0, epic: 22, legendary: 62, mythic: 14.5, secret: 1.5 } }
 };
 function cratesHeld() { let n = 0; Object.keys(CRATES).forEach(k => { n += G.crates[k] || 0; }); return n; }
-const CRATE_ORDER = ["supply", "royal", "admiral", "reliquary"];
-const CRATE_REFUND = { common: 1, rare: 2, epic: 3, legendary: 6, mythic: 0 };
+// The cheap crates are hard-locked out of the top two rarities (odds of 0), so the only
+// route to a Mythic or a Secret is the expensive end of the shelf.
+const CRATE_ORDER = ["supply", "royal", "relic", "admiral", "reliquary", "void"];
+const CRATE_REFUND = { common: 1, rare: 2, epic: 3, legendary: 6, mythic: 0, secret: 25 };
 function pickRarity(odds) {
   let total = 0;
   for (const k of RARITY_ORDER) total += odds[k] || 0;
@@ -5829,8 +5953,10 @@ function sealedCard(cat, id, item) {
   sw.textContent = "❔";
   card.appendChild(sw);
   const meta = el("div", "cos-meta");
+  const rk = item && item.r ? item.r : "mythic";
+  const rar = RARITY[rk] || RARITY.mythic;
   meta.appendChild(el("span", "cos-name", "？？？"));
-  meta.appendChild(el("span", "rarity mythic", "Mythic · 10,000 pts"));
+  meta.appendChild(el("span", "rarity " + rk, rar.name + " · " + fmtNum(rar.pts) + " pts"));
   meta.appendChild(el("span", "cos-cost", "📦 sealed — unlock it to reveal"));
   card.appendChild(meta);
   const btn = el("button", "btn tiny", "Sealed");
@@ -5955,6 +6081,10 @@ function chatTime(at) {
   const d = new Date(at || Date.now());
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
+// Discord reads best because consecutive messages from one author collapse into a
+// single block: the header (avatar, name, worth badge, time) appears once, and the
+// follow-up rows just indent. Clicking any row opens that captain's mini-profile.
+const CHAT_GROUP_MS = 5 * 60 * 1000;
 function renderChat() {
   const body = document.getElementById("chat-body");
   if (!body) return;
@@ -5962,32 +6092,45 @@ function renderChat() {
   const acct = activeAccount();
   if (status) {
     status.textContent = CHAT.messages.length + " message" + (CHAT.messages.length === 1 ? "" : "s") +
-      (acct ? " · you are " + acct.name + " · ⭐ " + fmtNum(worthTotal()) + " net worth" : " · sign in to talk");
+      (acct ? " · signed in as " + acct.name + " · ⭐ " + fmtNum(worthTotal()) + " net worth"
+            : " · sign in to talk");
   }
+  // Only auto-scroll when the reader is already at the bottom: yanking the view while
+  // somebody is reading history is the classic chat sin.
+  const nearBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 60;
   body.textContent = "";
   if (!CHAT.messages.length) {
     body.appendChild(el("div", "chat-empty", "Nobody has said anything yet. Be the first."));
     return;
   }
   const me = acct ? acct.id : null;
+  let lastId = null, lastAt = 0;
   CHAT.messages.forEach(m => {
-    const row = el("div", "chat-row" + (m.id === me ? " mine" : ""));
-    const av = el("span", "avatar sm");
-    paintAvatar(av, { id: m.id, name: m.name, avatar: m.avatar });
-    row.appendChild(av);
-    const main = el("div", "chat-main");
-    const top = el("div", "chat-top");
-    top.appendChild(el("span", "chat-name", m.name || "Captain"));
-    top.appendChild(el("span", "chat-worth", "⭐ " + fmtNum(m.worth || 0) + " net worth"));
-    top.appendChild(el("span", "chat-time", chatTime(m.at)));
-    main.appendChild(top);
-    main.appendChild(el("div", "chat-text", m.body));
-    row.appendChild(main);
-    row.title = "Tap to open " + (m.name || "Captain") + "'s card";
+    const sameAuthor = m.id === lastId && (m.at || 0) - lastAt < CHAT_GROUP_MS;
+    const row = el("div", "chat-row " + (sameAuthor ? "cont" : "group-start"));
+    if (!sameAuthor) {
+      const head = el("div", "chat-head");
+      const av = el("span", "avatar sm");
+      paintAvatar(av, { id: m.id, name: m.name, avatar: m.avatar });
+      head.appendChild(av);
+      head.appendChild(el("span", "chat-name" + (m.id === me ? " mine" : ""), m.name || "Captain"));
+      head.appendChild(el("span", "chat-worth", "⭐ " + fmtNum(m.worth || 0)));
+      head.appendChild(el("span", "chat-time", chatTime(m.at)));
+      row.appendChild(head);
+    }
+    row.appendChild(el("div", "chat-text", m.body));
+    row.title = "Open " + (m.name || "Captain") + "'s card";
     row.onclick = () => openMini(m);
     body.appendChild(row);
+    lastId = m.id;
+    lastAt = m.at || 0;
   });
-  body.scrollTop = body.scrollHeight;
+  if (nearBottom) {
+    requestAnimationFrame(() => {
+      try { body.scrollTo({ top: body.scrollHeight, behavior: "smooth" }); }
+      catch (e) { body.scrollTop = body.scrollHeight; }
+    });
+  }
 }
 function loadChat() {
   return apiGet("/api/chat").then(j => {
@@ -6364,6 +6507,13 @@ function ui() {
     document.getElementById("s-dps").textContent = (st.dmg / st.rate).toFixed(1) + " dps" +
       (st.crit > 0 ? " · " + Math.round(st.crit * 100) + "% crit" : "");
     document.getElementById("s-spec").textContent = st.spec ? b.special.name : "locked (Tier II)";
+    const cycLine = document.getElementById("s-cycle");
+    if (cycLine) {
+      const txt = towerCycleText(t.type, t);
+      cycLine.textContent = txt;
+      cycLine.hidden = !txt;
+      cycLine.classList.toggle("hot", !!txt && towerCharged(t));
+    }
     const modeSel = document.getElementById("t-mode");
     if (modeSel.value !== (t.mode || "first")) modeSel.value = t.mode || "first";
     const set = (id, txt, cost, on) => {
@@ -6524,6 +6674,34 @@ document.getElementById("up-rate").onclick = () => upgradeTower("rate");
 document.getElementById("up-range").onclick = () => upgradeTower("range");
 document.getElementById("up-spec").onclick = () => upgradeTower("spec");
 document.getElementById("up-tier").onclick = () => upgradeTower("tier");
+// Max All: buy everything affordable in one tap. upgradeTower() already refuses what
+// cannot be paid for, so this loops until nothing more can be bought (and is bounded so
+// a future upgrade type cannot spin forever).
+function maxAllTower() {
+  const t = G.sel;
+  if (!t) return;
+  const kinds = ["dmg", "rate", "range", "spec", "tier"];
+  let spent = 0, bought = 0, guard = 80;
+  while (guard-- > 0) {
+    const before = Math.round(G.gold);
+    kinds.forEach(k => upgradeTower(k));
+    const after = Math.round(G.gold);
+    if (after >= before) break;             // nothing was affordable this pass
+    spent += before - after;
+    bought++;
+  }
+  if (!bought) {
+    sfx("deny");
+    toast("Nothing affordable left on " + TOWERS[t.type].name + " — earn more gold.");
+    return;
+  }
+  sfx("upgrade");
+  banner("Maxed all it could", TOWERS[t.type].color);
+  toast("⚡ Max All: spent " + fmtNum(spent) + " gold on " + TOWERS[t.type].name +
+        " · " + fmtNum(G.gold) + " left.");
+  ui();
+}
+document.getElementById("up-max").onclick = maxAllTower;
 document.getElementById("sell").onclick = sellSelected;
 document.getElementById("move").onclick = startRelocate;
 document.getElementById("t-mode").onchange = e => {

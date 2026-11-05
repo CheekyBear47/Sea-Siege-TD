@@ -49,11 +49,13 @@ def main() -> int:
             m = RARITY_RE.match(line)
             if m:
                 out[f"{prefix}:{m.group(1)}"] = m.group(2)
-    # mythic turret cards: every entry in TURRET_CARDS is mythic, keyed "turret:<id>"
-    order = re.search(r"MYTHIC_ORDER\s*=\s*\[([^\]]*)\]", html)
-    if order:
-        for key in re.findall(r'"([^"]+)"', order.group(1)):
-            out[f"turret:{key}"] = "mythic"
+    # turret cards: MYTHIC_ORDER is mythic, SECRET_ORDER is the secret tier. Derived from
+    # the client so a new rarity cannot drift out of this table.
+    for order_name, rarity in (("MYTHIC_ORDER", "mythic"), ("SECRET_ORDER", "secret")):
+        order = re.search(rf"{order_name}\s*=\s*\[([^\]]*)\]", html)
+        if order:
+            for key in re.findall(r'"([^"]+)"', order.group(1)):
+                out[f"turret:{key}"] = rarity
 
     # worth points per rarity, straight from the client's RARITY table, so the global
     # leaderboard can score a profile from its own-store without a second table
@@ -64,6 +66,12 @@ def main() -> int:
             points[rk] = int(pts)
     if not points:
         print("!! could not read the RARITY table from index.html")
+        return 1
+    # the rarity ladder, in the client's own order: this is what decides what is tradeable
+    order_match = re.search(r"RARITY_ORDER\s*=\s*\[([^\]]*)\]", html)
+    rarity_order = re.findall(r'"([^"]+)"', order_match.group(1)) if order_match else list(points)
+    if not rarity_order:
+        print("!! could not read RARITY_ORDER from index.html")
         return 1
     item_points = {k: points.get(v, 0) for k, v in out.items()}
 
@@ -77,7 +85,9 @@ def main() -> int:
     lines = [
         BEGIN,
         "# item key -> rarity, used to keep basic starter gear out of trades.",
-        "RARITY_RANK = {\"common\": 0, \"rare\": 1, \"epic\": 2, \"legendary\": 3, \"mythic\": 4}",
+        # generated from the client's RARITY_ORDER: adding a rarity there is enough
+        "RARITY_RANK = {" + ", ".join(
+            f'"{rk}": {i}' for i, rk in enumerate(rarity_order)) + "}",
         f"TRADE_RARITY = {json.dumps(out, sort_keys=True)}",
         f"ITEM_POINTS = {json.dumps(item_points, sort_keys=True)}",
         "",

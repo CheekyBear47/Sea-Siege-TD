@@ -306,7 +306,9 @@ def main():
     inv = db.inventories["local:pgcaptain"]
     check("gems persisted", inv["gems"] == 321, str(inv))
     check("gold persisted", inv["gold"] == 5678, str(inv))
-    check("worth computed into the row", inv["worth"] == 10050, str(inv["worth"]))
+    # derived from the server's own generated points, so a rebalance cannot stale this
+    want_worth = srv.ITEM_POINTS["env:sunset"] + srv.ITEM_POINTS["turret:kraken"]
+    check("worth computed into the row", inv["worth"] == want_worth, f"{inv['worth']} vs {want_worth}")
     check("owned count computed into the row", inv["owned"] == 2, str(inv["owned"]))
     check("leaderboard row written", any(r["user_id"] == "local:pgcaptain" for r in db.leaderboards),
           str(db.leaderboards))
@@ -329,7 +331,7 @@ def main():
     check("history comes back oldest-first",
           [m["body"] for m in msgs] == ["ahoy from the database", "second message"], str(msgs))
     check("name and worth travel with the message",
-          msgs[0]["name"] == "PgCaptain" and msgs[0]["worth"] == 10050, str(msgs[0]))
+          msgs[0]["name"] == "PgCaptain" and msgs[0]["worth"] == 10050, str(msgs[0]))  # chat worth is whatever the caller passes
 
     print("\n[6] the real test: restart and read it all back")
     state2 = srv.Accounts(tmp)          # a fresh instance = a server restart

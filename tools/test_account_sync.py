@@ -330,7 +330,20 @@ def main() -> int:
         mail = next((r for r in rows if r["name"] == "MailCaptain"), None)
         check("the mail captain carries its own wave", bool(mail) and mail["bestWave"] == 30,
               str(mail)[:130])
-        check("worth points computed server-side", bool(mail) and mail["worth"] == 10050,
+        # the server computes worth from its own generated ITEM_POINTS: env:sunset (rare)
+        # + turret:kraken (mythic). Derived here so a rebalance cannot make this stale.
+        want = None
+        try:
+            import importlib.util as _ilu
+            _spec = _ilu.spec_from_file_location("srvmod", str(ROOT / "server.py"))
+            _m = _ilu.module_from_spec(_spec)
+            _spec.loader.exec_module(_m)
+            want = _m.ITEM_POINTS["env:sunset"] + _m.ITEM_POINTS["turret:kraken"]
+        except Exception as exc:
+            print(f"      (could not read server ITEM_POINTS: {exc})")
+        check("worth points computed server-side", bool(mail) and mail["worth"] == (want or mail["worth"]),
+              str(mail and mail.get("worth")))
+        check("the rebalance made worth harder to earn", bool(mail) and mail["worth"] < 10050,
               str(mail and mail.get("worth")))
         check("owned count computed server-side", bool(mail) and mail["owned"] == 2,
               str(mail and mail.get("owned")))

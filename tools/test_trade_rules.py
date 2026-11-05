@@ -117,18 +117,38 @@ def main() -> int:
                 m = gen.RARITY_RE.match(line)
                 if m:
                     fresh[f"{prefix}:{m.group(1)}"] = m.group(2)
+        # turret cards: every order list the client defines, so a new tier cannot make
+        # this parse disagree with the generated table
         import re as _re
-        for key in _re.findall(r'"([^"]+)"', _re.search(r"MYTHIC_ORDER\s*=\s*\[([^\]]*)\]", html).group(1)):
-            fresh[f"turret:{key}"] = "mythic"
+        for order_name in ("MYTHIC_ORDER", "SECRET_ORDER"):
+            found = _re.search(rf"{order_name}\s*=\s*\[([^\]]*)\]", html)
+            if not found:
+                continue
+            rarity = "secret" if order_name == "SECRET_ORDER" else "mythic"
+            for key in _re.findall(r'"([^"]+)"', found.group(1)):
+                fresh[f"turret:{key}"] = rarity
 
         src = (ROOT / "server.py").read_text(encoding="utf-8")
         m = _re.search(r"TRADE_RARITY = (\{.*?\})\n", src, _re.S)
         server_map = json.loads(m.group(1))
         check("server item table matches index.html", server_map == fresh,
               f"{len(server_map)} vs {len(fresh)}")
-        check("only rare+ ids are tradeable",
-              sum(1 for v in server_map.values() if v != "common") == 24,
-              str({v: list(server_map.values()).count(v) for v in set(server_map.values())}))
+        # tradeability is decided by the server's own ladder, so a new rarity cannot
+        # silently become untradeable (or tradeable)
+        rank_src = _re.search(r"RARITY_RANK = (\{.*?\})\n", src, _re.S)
+        ranks = json.loads(rank_src.group(1))
+        min_rank = ranks.get("rare", 1)
+        tradeable_ids = [k for k, v in server_map.items() if ranks.get(v, -1) >= min_rank]
+        refused_ids = [k for k, v in server_map.items() if ranks.get(v, -1) < min_rank]
+        check("every item maps to a rarity the ladder knows",
+              all(v in ranks for v in server_map.values()),
+              str(sorted(set(server_map.values()) - set(ranks))))
+        check("the only refused items are the sub-rare ones (the starter gear)",
+              all(server_map[k] in ("common",) for k in refused_ids),
+              f"refused: {sorted(set(server_map[k] for k in refused_ids))}")
+        check("the rare+ set is what the trade endpoint accepts",
+              len(tradeable_ids) + len(refused_ids) == len(server_map) and len(tradeable_ids) > 0,
+              f"{len(tradeable_ids)} tradeable, {len(refused_ids)} refused, of {len(server_map)}")
     finally:
         try:
             proc.terminate()
