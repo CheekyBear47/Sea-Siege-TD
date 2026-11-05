@@ -849,6 +849,18 @@ class Accounts:
         self.flush()
         return acct
 
+    def set_avatar(self, acct_id: str, avatar) -> dict:
+        """Choose the player's profile picture (a glyph, or Google's image URL)."""
+        avatar = str(avatar or "").strip()[:200] or None
+        with self.lock:
+            acct = self.accounts.get(acct_id)
+            if not acct:
+                raise ValueError("No such account.")
+            acct["avatar"] = avatar
+            acct["lastSeen"] = int(time.time() * 1000)
+        self.flush()
+        return acct
+
     def set_username(self, acct_id: str, username) -> dict:
         username = str(username or "").strip()
         if not USERNAME_RE.match(username):
@@ -1008,6 +1020,10 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
             rows = ACCOUNTS.leaderboard()
             return self._json({"ok": True, "at": int(time.time() * 1000),
                                "accounts": len(rows), "rows": rows})
+        if path == "/api/chat":
+            # The permanent log (Postgres when configured, memory otherwise).
+            return self._json({"ok": True, "at": int(time.time() * 1000),
+                               "messages": chat_recent(80)})
         if path == "/api/health":
             return self._json({"ok": True, "players": len(HUB.clients), "trades": len(HUB.trades),
                                "accounts": len(ACCOUNTS.accounts)})
@@ -1018,6 +1034,27 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
         body = self._body()
         if path.startswith("/api/account/"):
             return self._account(path, body)
+        if path == "/api/chat/send":
+            acct = ACCOUNTS.by_token(body.get("token"))
+            if not acct:
+                return self._json({"ok": False, "error": "sign in to chat"}, 401)
+            text = " ".join(str(body.get("body") or "").split())
+            if not text:
+                return self._json({"ok": False, "error": "nothing to say"}, 400)
+            if len(text) > 240:
+                text = text[:240]
+            if acct.get("mutedUntil") and acct["mutedUntil"] > time.time() * 1000:
+                return self._json({"ok": False, "error": "you are muted for a moment"}, 429)
+            # Worth is computed server-side from the account's own save, so a client
+            # cannot claim a net worth it does not have.
+            worth = profile_worth(acct.get("save"))
+            who = acct.get("name") or acct.get("username") or "Captain"
+            msg = chat_add(acct["id"], who, text, worth)
+            msg["avatar"] = acct.get("avatar")
+            msg["provider"] = acct.get("provider")
+            msg["prof"] = acct["id"]
+            HUB.broadcast({"type": "chat", "msg": msg})
+            return self._json({"ok": True, "msg": msg})
         if path == "/api/join":
             client = HUB.add_client(body.get("name"), body.get("prof"), body.get("worth"), self._remote)
             print(f"  + online: {client['name']} ({client['host']}) worth {client['worth']:,}"
@@ -1061,7 +1098,7 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
                 # one field, either identifier: the username or the registered email
                 who = body.get("identifier") or body.get("username")
                 return self._acct_ok(ACCOUNTS.login_local(who, body.get("password")))
-            if action in ("session", "username", "save"):
+            if action in ("session", "username", "save", "avatar"):
                 acct = ACCOUNTS.by_token(body.get("token"))
                 if not acct:
                     return self._json({"ok": False, "error": "session expired"}, 401)
@@ -1069,6 +1106,9 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
                     return self._acct_ok(acct, token=body.get("token"))
                 if action == "username":
                     return self._acct_ok(ACCOUNTS.set_username(acct["id"], body.get("username")),
+                                         token=body.get("token"))
+                if action == "avatar":
+                    return self._acct_ok(ACCOUNTS.set_avatar(acct["id"], body.get("avatar")),
                                          token=body.get("token"))
                 fresh = ACCOUNTS.store_profile(acct, body.get("save"), body.get("boards"),
                                                body.get("stats"), body.get("baseRev"))

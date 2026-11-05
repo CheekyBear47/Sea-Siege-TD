@@ -398,24 +398,55 @@
   .inv-selects label{display:flex;align-items:center;gap:5px;font-size:9px;letter-spacing:1px;
     text-transform:uppercase;color:var(--dim);font-weight:800}
   .inv-selects select{max-width:190px}
+  /* accordion tiers */
+  .sect.acc{display:flex;align-items:center;gap:8px;cursor:pointer;border-radius:10px;
+    padding:8px 10px;margin:10px 0 6px;background:var(--glass-2);border:1px solid var(--stroke);
+    -webkit-tap-highlight-color:transparent;user-select:none}
+  .sect.acc:hover{background:rgba(120,180,255,.12)}
+  .sect.acc .chev{font-size:11px;color:#9fd6ff;width:11px;flex:0 0 auto}
+  .sect.acc .acc-label{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sect.acc .acc-count{flex:0 0 auto;font-size:9.5px;letter-spacing:.6px;color:var(--dim)}
+  .sect.acc.open{border-color:rgba(143,214,255,.4)}
   /* ---- crate rolling ---- */
   #roll{position:absolute;inset:0;display:none;justify-items:center;align-items:center;z-index:9;
     border-radius:16px;background:radial-gradient(600px 400px at 50% 40%, rgba(10,24,40,.88), rgba(3,6,11,.96));
     backdrop-filter:blur(4px)}
   #roll.on{display:grid}
-  .roll-box{text-align:center}
-  .roll-card{width:118px;height:118px;margin:0 auto 16px;display:grid;place-items:center;font-size:54px;
-    border-radius:22px;border:2px solid var(--stroke);background:rgba(12,22,36,.85);
-    box-shadow:0 18px 40px rgba(0,0,0,.6)}
-  .roll-card.spin{animation:rollspin .16s linear}
-  .roll-card.win{animation:rollwin .5s cubic-bezier(.2,1.5,.4,1) 1;animation-fill-mode:forwards}
-  @keyframes rollspin{from{transform:translateY(-9px) scale(.94);opacity:.55}to{transform:none;opacity:1}}
-  @keyframes rollwin{0%{transform:scale(.72) rotate(-6deg)}60%{transform:scale(1.12) rotate(3deg)}100%{transform:scale(1)}}
-  .roll-card.r-rare{border-color:rgba(105,184,255,.75)}
-  .roll-card.r-epic{border-color:rgba(195,155,255,.8)}
-  .roll-card.r-legendary{border-color:rgba(255,209,102,.85);box-shadow:0 0 28px rgba(255,209,102,.35)}
-  .roll-card.r-mythic{border-color:rgba(255,122,217,.9);box-shadow:0 0 34px rgba(255,122,217,.45)}
-  .roll-label{font-size:13px;font-weight:800;color:#eaf6ff}
+  /* single-reel slot machine: one column of tiles that spins and snaps to the win */
+  .roll-box{text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
+  .reel-wrap{position:relative}
+  .reel-window{
+    position:relative;width:168px;height:168px;overflow:hidden;border-radius:18px;
+    border:1px solid rgba(143,214,255,.32);background:linear-gradient(160deg, rgba(16,28,46,.95), rgba(6,12,22,.98));
+    box-shadow:0 22px 50px rgba(0,0,0,.65), 0 0 0 6px rgba(8,16,28,.6) inset;
+  }
+  .reel-strip{position:absolute;left:0;right:0;top:0;display:flex;flex-direction:column;will-change:transform}
+  .reel-item{
+    height:168px;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+    padding:10px;
+  }
+  .reel-item .ri-glyph{font-size:46px;line-height:1;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
+  .reel-item .ri-name{font-size:10.5px;font-weight:800;letter-spacing:.3px;color:#cfe6ff;
+    max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .reel-item.r-rare .ri-name{color:#a8d8ff}
+  .reel-item.r-epic .ri-name{color:#d0b8ff}
+  .reel-item.r-legendary .ri-name{color:#ffd166}
+  .reel-item.r-mythic .ri-name{color:#ffb3e6}
+  .reel-item.win{background:radial-gradient(circle at 50% 45%, rgba(255,255,255,.14), transparent 70%);
+    animation:rollwin .5s cubic-bezier(.2,1.5,.4,1) 1;animation-fill-mode:forwards}
+  @keyframes rollwin{0%{transform:scale(.8)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+  .reel-payline{
+    position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-1px);
+    background:linear-gradient(90deg, transparent, rgba(143,214,255,.75), transparent);
+    pointer-events:none;
+  }
+  .reel-window::before,.reel-window::after{
+    content:"";position:absolute;left:0;right:0;height:52px;pointer-events:none;z-index:2;
+  }
+  .reel-window::before{top:0;background:linear-gradient(180deg, rgba(6,12,22,.92), transparent)}
+  .reel-window::after{bottom:0;background:linear-gradient(0deg, rgba(6,12,22,.92), transparent)}
+  .roll-label{font-size:14px;font-weight:800;color:#eaf6ff;max-width:min(88vw,420px)}
+  .roll-sub{font-size:11px;color:var(--dim);margin-top:-6px}
   /* ---- crate tiers + trade preview ---- */
   .crate-card.t4{border-color:rgba(195,155,255,.5)}
   .crate-card.t5{border-color:rgba(255,122,217,.55);background:linear-gradient(150deg,rgba(80,40,90,.4),rgba(24,14,34,.5))}
@@ -550,6 +581,61 @@
   #over .btn{width:auto;padding:10px 22px;display:inline-block}
   @media (max-width:1080px){ #panel{width:290px;flex-basis:290px} }
 
+  /* ---------------------------- chat & mini-profile ------------------------ */
+  #chat{
+    position:absolute;inset:0;display:none;justify-items:center;align-items:start;border-radius:16px;z-index:6;
+    background:radial-gradient(700px 460px at 50% 30%, rgba(10,24,40,.88), rgba(3,6,11,.96));
+    backdrop-filter:blur(5px);padding:16px 0 20px;overflow:auto;
+  }
+  #chat.on{display:grid}
+  #chat .box{
+    text-align:left;padding:18px 22px 14px;border-radius:18px;max-width:760px;width:min(94%,760px);
+    max-height:92%;overflow:hidden;display:flex;flex-direction:column;gap:10px;
+    background:var(--glass);border:1px solid var(--stroke);
+  }
+  #chat h2{margin:0;font-size:20px;letter-spacing:3px;text-transform:uppercase}
+  .chat-body{display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1 1 auto;
+    min-height:180px;max-height:52vh;padding-right:4px;-webkit-overflow-scrolling:touch}
+  .chat-row{display:flex;gap:9px;align-items:flex-start;padding:8px 10px;border-radius:12px;
+    background:rgba(255,255,255,.035);border:1px solid var(--stroke);cursor:pointer}
+  .chat-row:hover{background:rgba(120,180,255,.1)}
+  .chat-row.mine{border-color:rgba(87,224,138,.4);background:rgba(30,70,50,.28)}
+  .chat-row .avatar{flex:0 0 auto}
+  .chat-main{min-width:0;flex:1 1 auto}
+  .chat-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .chat-name{font-weight:800;font-size:12px;color:#eaf6ff}
+  .chat-worth{font-size:10px;color:#ffd166;font-weight:700;white-space:nowrap}
+  .chat-time{font-size:9.5px;color:var(--dim);margin-left:auto;white-space:nowrap}
+  .chat-text{font-size:12px;color:#dceaf7;line-height:1.45;margin-top:3px;overflow-wrap:anywhere}
+  .chat-send{display:flex;gap:8px;align-items:center}
+  .chat-send input{
+    flex:1 1 auto;min-width:0;padding:10px 12px;border-radius:11px;font:inherit;font-size:12.5px;
+    color:var(--txt);background:rgba(8,16,28,.7);border:1px solid var(--stroke);
+  }
+  .chat-empty{color:var(--dim);font-size:11.5px;padding:14px 4px;text-align:center}
+  .mini-card{
+    position:fixed;z-index:40;display:none;width:min(300px,88vw);padding:14px;border-radius:16px;
+    background:linear-gradient(160deg, rgba(28,44,72,.97), rgba(10,18,32,.97));
+    border:1px solid var(--stroke);box-shadow:0 22px 50px rgba(0,0,0,.6);
+  }
+  .mini-card.on{display:block}
+  .mini-top{display:flex;align-items:center;gap:11px;margin-bottom:10px}
+  .mini-name{font-weight:800;font-size:14px;color:#eaf6ff}
+  .mini-sub{font-size:10.5px;color:var(--dim)}
+  .mini-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin:10px 0}
+  .mini-stats div{padding:7px 9px;border-radius:10px;background:var(--glass-2);border:1px solid var(--stroke)}
+  .mini-stats small{display:block;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--dim)}
+  .mini-stats b{font-size:13px;color:#eaf6ff}
+  .mini-actions{display:flex;gap:7px;margin-top:4px}
+  .pfp-row{display:flex;flex-wrap:wrap;gap:7px;margin:2px 0 4px}
+  .pfp{
+    width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:19px;cursor:pointer;
+    background:linear-gradient(150deg, rgba(45,90,140,.5), rgba(16,32,52,.55));border:1px solid var(--stroke);
+  }
+  .pfp:hover{filter:brightness(1.25)}
+  .pfp.on{border-color:#57e08a;box-shadow:0 0 0 1px rgba(87,224,138,.6)}
+  .btn.danger{border-color:rgba(255,120,120,.45);color:#ffd7d7}
+  .btn.danger:disabled{opacity:.45}
   /* ============================ phones & tablets ============================
      The desktop layout is a height-locked row (canvas + 330px panel). On a narrow
      screen that squeezes the canvas to nothing, so below 900px the page becomes a
@@ -656,8 +742,9 @@
   <nav class="top-nav">
     <button class="top-btn" id="top-board">🏆 <span>Leaderboard</span></button>
     <button class="top-btn" id="top-crates">🎁 <span>Crates</span></button>
-    <button class="top-btn" id="top-inv">📖 <span>Collection index</span></button>
-    <button class="top-btn" id="top-trade">🤝 <span>Trading &amp; Players</span></button>
+    <button class="top-btn" id="top-inv" title="Collection index">📖 <span>Collection</span></button>
+    <button class="top-btn" id="top-trade" title="Trading &amp; Players">🤝 <span>Trading</span></button>
+    <button class="top-btn" id="top-chat" title="Global Chat">💬 <span>Chat</span></button>
     <button class="top-btn profile-chip" id="top-profile" title="Account &amp; progress">
       <span class="avatar sm" id="chip-avatar">?</span><span id="chip-name">No account</span>
     </button>
@@ -775,8 +862,12 @@
     </div></div>
     <!-- Crate rolling animation: a spray of possible drops that settles on the real one -->
     <div id="roll"><div class="roll-box">
-      <div class="roll-card r-common" id="roll-card">📦</div>
+      <div class="reel-wrap"><div class="reel-window">
+        <div class="reel-strip" id="reel-strip"></div>
+        <div class="reel-payline"></div>
+      </div></div>
       <div class="roll-label" id="roll-label">Rolling…</div>
+      <div class="roll-sub" id="roll-sub"></div>
     </div></div>
     <div id="trade"><div class="box">
       <div class="board-head">
@@ -789,6 +880,24 @@
       <div id="trade-players"></div>
       <div id="trade-room"></div>
     </div></div>
+    <div id="chat"><div class="box">
+      <div class="board-head">
+        <div class="pf-head">
+          <h2>💬 Global Chat</h2>
+          <div class="pf-id" id="chat-status">loading…</div>
+        </div>
+        <button class="btn tiny" id="chat-x" style="width:auto;padding:5px 10px">✕ Close</button>
+      </div>
+      <div id="chat-body" class="chat-body"></div>
+      <div class="chat-send">
+        <input id="chat-input" maxlength="240" placeholder="Say something to the harbour…" />
+        <button class="btn primary" id="chat-send">Send</button>
+      </div>
+      <div class="board-foot">
+        <span class="hint" style="flex:1;align-self:center">Tap any captain to see their card and send a trade request.</span>
+      </div>
+    </div></div>
+    <div id="mini" class="mini-card"></div>
     <div id="profile"><div class="box">
       <div class="board-head">
         <span class="avatar lg" id="pf-avatar">?</span>
@@ -799,6 +908,8 @@
         <button class="btn tiny" id="pf-x" style="width:auto;padding:5px 10px">✕ Close</button>
       </div>
       <div class="pf-badges" id="pf-badges"></div>
+      <div class="sect2">Profile picture</div>
+      <div class="pfp-row" id="pfp-row"></div>
       <div class="sect2">Lifetime stats</div>
       <div class="pf-stats" id="pf-stats"></div>
       <div class="sect2">Progress &amp; unlocks</div>
@@ -896,6 +1007,7 @@
       <button class="btn tiny" id="btn-pause">⏸ Pause</button>
       <button class="btn tiny" id="btn-rush">⏩ Speed ×1</button>
     </div>
+    <button class="btn tiny danger" id="btn-forfeit" style="margin-top:6px" disabled>🏳 Forfeit run</button>
     <div class="opts" style="margin-top:6px">
       <label class="switch"><input type="checkbox" id="auto" /> Auto-start waves</label>
       <label class="switch"><input type="checkbox" id="grid" checked /> Show grid</label>
@@ -1128,6 +1240,35 @@ const TOWERS = {
     slow: 0.55, slowDur: 2.6, color: "#a8e8ff", desc: "Freezing pulse, slows a whole line",
     special: { name: "Deepfreeze", text: "much harder slow that also cracks armour." }
   },
+  /* ---------- the five added turrets, one per tier I-V ---------- */
+  flakcutter: {
+    name: "Flak Cutter", glyph: "🔫", cost: 160, rank: 1, kind: "Rapid",
+    dmg: 11, rate: 1.35, range: 150, color: "#bfe3ff", desc: "cheap, quick, relentless",
+    special: { name: "Flak Burst", text: "a snub fast-firer - more shots per coin than anything else." }
+  },
+  pike: {
+    name: "Pike Battery", glyph: "🎯", cost: 430, rank: 2, kind: "Piercing",
+    dmg: 38, rate: 1.9, range: 210, pierceBase: 2, color: "#9fd6ff", desc: "bolts that ignore plating",
+    special: { name: "Armour Pike", text: "bolts punch through hull armour and two ships at once." }
+  },
+  tidecaller: {
+    name: "Tidecaller Shrine", glyph: "🌀", cost: 890, rank: 3, kind: "Control",
+    dmg: 62, rate: 1.6, range: 260, slow: 0.34, slowDur: 1.9, color: "#7fd0ff",
+    desc: "churns the channel into a slow drag",
+    special: { name: "Riptide", text: "everything it touches is dragged down to a crawl." }
+  },
+  scorpion: {
+    name: "Scorpion Deck", glyph: "🏹", cost: 1900, rank: 4, kind: "Sniper",
+    dmg: 270, rate: 2.6, range: 450, pierceBase: 3, projType: "ray", color: "#d0b8ff",
+    desc: "long-range skewer, three hulls deep",
+    special: { name: "Skewer Volley", text: "a single bolt that runs the length of a column." }
+  },
+  obsidian: {
+    name: "Obsidian Battery", glyph: "🖤", cost: 5900, rank: 5, kind: "Artillery",
+    dmg: 440, rate: 2.2, range: 470, projSpeed: 260, projType: "stone",
+    splash: 250, minRange: 120, color: "#b9a5ff", desc: "black-glass shells, wide and final",
+    special: { name: "Glassfall", text: "the blast shatters plating and leaves nothing standing in it." }
+  },
   /* ---------- rank 5 — 2,600..3,400 gold: end-game support ---------- */
   stormcaller: {
     name: "Stormcaller Battery", glyph: "🌩️", cost: 4810, rank: 5, kind: "Support",
@@ -1184,7 +1325,10 @@ const TOWERS = {
 };
 const TOWER_ORDER = ["longbow", "slinger", "crossbow", "cannon", "harpoon",
                      "trebuchet", "tesla", "brazier", "mortar", "frostbite",
-                     "stormcaller", "wavebreak", "sunforge", "dreadnought"];
+                     "stormcaller", "wavebreak", "sunforge", "dreadnought",
+                     // the five added in the patch pass - appended so the number keys
+                     // (which map to the first nine) do not shift under existing players
+                     "flakcutter", "pike", "tidecaller", "scorpion", "obsidian"];
 const MYTHIC_ORDER = ["trident", "kraken", "sunfire", "leviathan"];
 const ALL_TOWERS = TOWER_ORDER.concat(MYTHIC_ORDER);
 const RANK_BRACKETS = {
@@ -3414,16 +3558,22 @@ function initialsOf(name, fallback) {
   return (((parts[0] || "?")[0] || "?") + (parts[1] ? parts[1][0] : "")).toUpperCase();
 }
 function paintAvatar(host, acct) {
+  rememberGooglePic(acct);
   if (!host) return;
   host.textContent = "";
   host.style.background = avatarGradient(acct ? (acct.id || acct.name) : "guest");
-  if (acct && acct.avatar) {
+  const av = acct && acct.avatar;
+  if (av && /^https?:\/\//.test(av)) {
+    // Google (or any URL) picture
     const img = document.createElement("img");
-    img.src = acct.avatar;
+    img.src = av;
     img.alt = "";
     img.referrerPolicy = "no-referrer";
     img.onerror = () => { host.textContent = initialsOf(acct.name || acct.email); };
     host.appendChild(img);
+  } else if (av) {
+    // a glyph chosen in Settings - the initials are the fallback, not the whole story
+    host.textContent = av;
   } else {
     host.textContent = initialsOf(acct ? (acct.name || acct.email) : "Guest");
   }
@@ -3837,6 +3987,7 @@ function renderProfile() {
   paintAvatar(document.getElementById("chip-avatar"), acct);
   document.getElementById("chip-name").textContent = acct ? displayName(acct) : "Sign in required";
   paintAvatar(document.getElementById("pf-avatar"), acct);
+  renderPfp();
   document.getElementById("pf-name").textContent = acct ? displayName(acct) : "Captain";
   document.getElementById("pf-id").textContent = acct
     ? (acct.provider === "google" ? "Google account" : "Username & password account") +
@@ -3920,7 +4071,7 @@ function showProfile(on) {
 }
 // Only one top-bar screen is ever on screen: opening one closes the others, and the
 // bar highlights whichever is showing.
-const OVERLAY_IDS = ["board", "crates", "inv", "trade", "profile"];
+const OVERLAY_IDS = ["board", "crates", "inv", "trade", "chat", "profile"];
 function overlayOpen(id) {
   const el2 = document.getElementById(id);
   return !!el2 && el2.classList.contains("on");
@@ -3934,7 +4085,7 @@ function closeOverlays(except) {
 }
 function syncTopTabs() {
   [["top-board", "board"], ["top-crates", "crates"], ["top-inv", "inv"], ["top-trade", "trade"],
-   ["top-profile", "profile"]]
+   ["top-chat", "chat"], ["top-profile", "profile"]]
     .forEach(([btn, id]) => {
       const b = document.getElementById(btn);
       if (b) b.classList.toggle("on", overlayOpen(id));
@@ -3948,6 +4099,7 @@ function toggleOverlay(id) {
   else if (id === "crates") showCrates(!open);
   else if (id === "inv") showInv(!open);
   else if (id === "trade") showTrade(!open);
+  else if (id === "chat") showChat(!open);
   else showProfile(!open);
 }
 
@@ -4070,6 +4222,9 @@ function netEvent(d) {
     case "presence":
       NET.players = d.players || [];
       renderPlayers();
+      break;
+    case "chat":
+      pushChat(d.msg);
       break;
     case "trade-invite":
       showInvite(d);
@@ -4520,21 +4675,43 @@ function showTrade(on) {
 // tradable item keyed "turret:<id>". Ranks 1-4 are always available to buy; rank 5
 // only appears usable once a crate has dropped it.
 function turretUnlocked(type) { return !TOWERS[type].mythic || G.cosOwn["turret:" + type] === true; }
+// The armory is an accordion: one tier open at a time by default, remembering what the
+// player had open, so the sidebar is a clean list of tiers instead of a wall of cards.
+const ARM_KEY = "seaSiege.armory.v1";
+let armOpen = {};
+try { armOpen = JSON.parse(localStorage.getItem(ARM_KEY) || "{}") || {}; } catch (e) { armOpen = {}; }
+function armoryIsOpen(key, dflt) {
+  return armOpen[key] === undefined ? !!dflt : !!armOpen[key];
+}
+function toggleArmory(key) {
+  armOpen[key] = !armoryIsOpen(key, false);
+  try { localStorage.setItem(ARM_KEY, JSON.stringify(armOpen)); } catch (e) {}
+  renderArmory();
+}
 function renderArmory() {
   const shop = document.getElementById("shop");
   if (!shop) return;
   shop.textContent = "";
-  const section = (label, keys, cls) => {
-    shop.appendChild(el("div", "sect" + (cls ? " " + cls : ""), label));
+  const section = (label, keys, cls, key, dflt) => {
+    const open = armoryIsOpen(key, dflt);
+    const head = el("div", "sect acc" + (cls ? " " + cls : "") + (open ? " open" : ""));
+    head.appendChild(el("span", "chev", open ? "▾" : "▸"));
+    head.appendChild(el("span", "acc-label", label));
+    head.appendChild(el("span", "acc-count", keys.length + (keys.length === 1 ? " turret" : " turrets")));
+    head.setAttribute("role", "button");
+    head.title = (open ? "Hide" : "Show") + " " + label;
+    head.onclick = () => toggleArmory(key);
+    shop.appendChild(head);
+    if (!open) return;
     const grid = el("div", "shop");
     keys.forEach(k => grid.appendChild(armoryCard(k)));
     shop.appendChild(grid);
   };
   [1, 2, 3, 4, 5, 6].forEach(rank => {
     const keys = TOWER_ORDER.filter(k => TOWERS[k].rank === rank);
-    if (keys.length) section("Armory · " + RANK_BRACKETS[rank], keys);
+    if (keys.length) section("Armory · " + RANK_BRACKETS[rank], keys, null, "r" + rank, rank === 1);
   });
-  section("Mythic armory · crate drops only", MYTHIC_ORDER, "mythic-sect");
+  section("Mythic armory · crate drops only", MYTHIC_ORDER, "mythic-sect", "mythic", false);
 }
 // A locked mythic still tells you exactly what it is: a crate drop is a goal to chase,
 // not a mystery box.
@@ -5365,66 +5542,90 @@ function rollCrate(kind, silent) {
 }
 // The rolling animation: a spray of possible drops that settles on the real one.
 let rolling = false;
+// One reel, spun on a wall clock: the strip is a column of real possible drops with the
+// actual win on the end, and it eases to a stop on the payline. Frame-driven and
+// time-based (a tick-counting interval stalls on a throttled tab and the drop, which is
+// already committed, would sit behind a stuck overlay).
+function reelTile(entry) {
+  const it = entry.item || entry;
+  const tile = el("div", "reel-item r-" + (it.r || "common"));
+  tile.appendChild(el("span", "ri-glyph", it.glyph || (it.tint ? "🎨" : "🎁")));
+  tile.appendChild(el("span", "ri-name", it.name));
+  return tile;
+}
 function playRoll(pick, crate, duplicate, done) {
   const host = document.getElementById("roll");
-  const card = document.getElementById("roll-card");
+  const strip = document.getElementById("reel-strip");
   const label = document.getElementById("roll-label");
+  const sub = document.getElementById("roll-sub");
   const reveal = () => {
-    if (card) {
-      card.textContent = pick.item.glyph || "🎁";
-      card.className = "roll-card win r-" + (pick.item.r || "common");
-    }
     if (label) {
-      label.textContent = rarityOf(pick.item).name + " · " + pick.item.name +
-        (duplicate ? " (duplicate)" : " · +" + itemWorth(pick.item) + " pts");
+      label.textContent = rarityOf(pick.item).name + " · " + pick.item.name;
+    }
+    if (sub) {
+      sub.textContent = crate.glyph + " " + crate.name +
+        (duplicate ? " · duplicate — gems refunded" : " · +" + itemWorth(pick.item) + " worth points");
     }
     sfx(pick.item.r === "mythic" || pick.item.r === "legendary" ? "win" : "gem");
   };
-  if (!host || !card) { reveal(); setTimeout(done, 900); return; }
+  if (!host || !strip) { reveal(); setTimeout(done, 900); return; }
   rolling = true;
   const pool = [];
   RARITY_ORDER.forEach(r => cratePool(r).forEach(x => pool.push(x)));
-  if (label) label.textContent = crate.glyph + " " + crate.name + " — rolling…";
+  if (label) label.textContent = "Rolling " + crate.name + "…";
+  if (sub) sub.textContent = crate.gems + " 💎 spent";
   host.classList.add("on");
-  const landed = () => {
+  const finish = () => {
+    host.classList.remove("on");
+    rolling = false;
+    done();
+  };
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const TILE = 168, RUN = 22;
+  strip.textContent = "";
+  strip.style.transform = "translateY(0)";
+  if (reduce) {
+    strip.appendChild(reelTile(pick));
+    strip.firstChild.classList.add("win");
     reveal();
-    setTimeout(() => {
-      host.classList.remove("on");
-      rolling = false;
-      done();
-    }, 1200);
-  };
-  // Wall-clock, frame-driven. A tick-counting setInterval stalls on a throttled or
-  // hidden page and the overlay would stay up (the drop is already in the hold).
-  const started = Date.now();
-  const SPIN = 1500, HOLD = 1400;
-  const spray = () => {
+    setTimeout(finish, 1400);
+    return;
+  }
+  // build the strip: filler from the real pool, then the winner in the last slot
+  const filler = [];
+  for (let i = 0; i < RUN; i++) {
     const it = pool[(Math.random() * pool.length) | 0];
-    if (it) {
-      card.textContent = it.item.glyph || "🎁";
-      card.className = "roll-card spin r-" + (it.item.r || "common");
-    }
+    filler.push(it || pick);
+  }
+  filler.forEach(x => strip.appendChild(reelTile(x)));
+  const winTile = reelTile(pick);
+  strip.appendChild(winTile);
+  const travel = RUN * TILE;                 // stop with the winner inside the window
+  const SPIN = 2600;
+  let closed = false;
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    reveal();
+    clearInterval(safety);
+    if (typeof ticker !== "undefined") clearInterval(ticker);
+    setTimeout(finish, 1500);
   };
-  const frame = () => {
-    if (Date.now() - started >= SPIN) {
-      clearInterval(safety);
-      landed();
-      return;
-    }
-    spray();
-    requestAnimationFrame(frame);
+  const started = Date.now();
+  const step = () => {
+    if (closed) return;
+    const t = Math.min(1, (Date.now() - started) / SPIN);
+    const ease = 1 - Math.pow(1 - t, 3.1);   // decelerate into the payline
+    strip.style.transform = "translateY(" + (-travel * ease).toFixed(1) + "px)";
+    if (t >= 1) { winTile.classList.add("win"); close(); }
   };
-  const safety = setInterval(spray, 90);        // keeps spinning if rAF is throttled
-  setTimeout(() => {                            // and never leave the overlay stuck
-    if (rolling && Date.now() - started >= SPIN + HOLD) {
-      clearInterval(safety);
-      host.classList.remove("on");
-      rolling = false;
-      reveal();
-      done();
-    }
-  }, SPIN + HOLD + 200);
-  requestAnimationFrame(frame);
+  // Two drivers on purpose: requestAnimationFrame for smoothness, and an interval so the
+  // reel still turns where rAF is throttled or never fires (backgrounded tab, some
+  // mobile browsers). step() is idempotent - it works off the wall clock - so whichever
+  // ticks lands it exactly once, and the safety net below guarantees it never sticks.
+  const ticker = setInterval(step, 40);
+  const safety = setInterval(() => { if (Date.now() - started > SPIN + 2500) close(); }, 500);
+  requestAnimationFrame(step);
 }
 // The two top rarities stay a mystery until the player has actually found one of
 // them - their names and contents are hidden behind a 🔒 ??? until then.
@@ -5680,6 +5881,223 @@ function showCrates(on) {
   if (visible) renderCratesPanel();
   syncTopTabs();
 }
+/* --------------------------- global chat ---------------------------------- */
+// Worth is what the SERVER computed from the account's own save; the client never gets
+// to assert its own net worth.
+let CHAT = { messages: [], at: 0, timer: null, open: false };
+const PFP_CHOICES = ["⚓", "🐋", "🦈", "🧭", "⚔️", "🏴‍☠️", "🐙", "🔱", "🦀", "🌊", "🗺️", "🔭"];
+function chatTime(at) {
+  const d = new Date(at || Date.now());
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+function renderChat() {
+  const body = document.getElementById("chat-body");
+  if (!body) return;
+  const status = document.getElementById("chat-status");
+  const acct = activeAccount();
+  if (status) {
+    status.textContent = CHAT.messages.length + " message" + (CHAT.messages.length === 1 ? "" : "s") +
+      (acct ? " · you are " + acct.name + " · ⭐ " + fmtNum(worthTotal()) + " net worth" : " · sign in to talk");
+  }
+  body.textContent = "";
+  if (!CHAT.messages.length) {
+    body.appendChild(el("div", "chat-empty", "Nobody has said anything yet. Be the first."));
+    return;
+  }
+  const me = acct ? acct.id : null;
+  CHAT.messages.forEach(m => {
+    const row = el("div", "chat-row" + (m.id === me ? " mine" : ""));
+    const av = el("span", "avatar sm");
+    paintAvatar(av, { id: m.id, name: m.name, avatar: m.avatar });
+    row.appendChild(av);
+    const main = el("div", "chat-main");
+    const top = el("div", "chat-top");
+    top.appendChild(el("span", "chat-name", m.name || "Captain"));
+    top.appendChild(el("span", "chat-worth", "⭐ " + fmtNum(m.worth || 0) + " net worth"));
+    top.appendChild(el("span", "chat-time", chatTime(m.at)));
+    main.appendChild(top);
+    main.appendChild(el("div", "chat-text", m.body));
+    row.appendChild(main);
+    row.title = "Tap to open " + (m.name || "Captain") + "'s card";
+    row.onclick = () => openMini(m);
+    body.appendChild(row);
+  });
+  body.scrollTop = body.scrollHeight;
+}
+function loadChat() {
+  return apiGet("/api/chat").then(j => {
+    if (j && j.ok) { CHAT.messages = j.messages || []; CHAT.at = Date.now(); }
+    if (CHAT.open) renderChat();
+    return j;
+  }).catch(() => null);
+}
+function pushChat(msg) {
+  if (!msg) return;
+  CHAT.messages.push(msg);
+  if (CHAT.messages.length > 120) CHAT.messages = CHAT.messages.slice(-120);
+  if (CHAT.open) renderChat();
+}
+function sendChat() {
+  const input = document.getElementById("chat-input");
+  const text = (input.value || "").trim();
+  if (!text) return;
+  if (!activeAccount()) { toast("Sign in to talk in the chat."); return; }
+  input.value = "";
+  const token = (readSession() || {}).token;
+  const post = () => api("/api/chat/send", { token: token, body: text }, 12000);
+  // The net worth shown next to a name is computed server-side from the stored profile,
+  // so flush the pending debounced push first - otherwise a fresh account's first
+  // message goes out with whatever the server last saw (usually nothing).
+  syncNow().then(post, post)
+    .then(j => { if (j && j.msg) pushChat(j.msg); })
+    .catch(e => { toast("Could not send: " + (e.message || e)); input.value = text; });
+}
+// The mini-profile: name, worth, presence, and a working trade request.
+function openMini(m) {
+  const card = document.getElementById("mini");
+  if (!card) return;
+  const players = (NET && NET.players) || [];
+  const online = players.find(p => (m.prof && p.prof === m.prof) || (!m.prof && p.name === m.name));
+  card.textContent = "";
+  const top = el("div", "mini-top");
+  const av = el("span", "avatar lg");
+  paintAvatar(av, { id: m.id, name: m.name, avatar: m.avatar });
+  top.appendChild(av);
+  const idBox = el("div");
+  idBox.appendChild(el("div", "mini-name", m.name || "Captain"));
+  idBox.appendChild(el("div", "mini-sub",
+    (m.provider === "google" ? "🔐 Google account" : "🔑 Username account") +
+    (online ? " · online now" : " · offline")));
+  top.appendChild(idBox);
+  card.appendChild(top);
+  const stats = el("div", "mini-stats");
+  [["Net worth", "⭐ " + fmtNum(m.worth || 0)],
+   ["Status", online ? "🟢 in the hub" : "⚪ not connected"]].forEach(([k, v]) => {
+    const d = el("div");
+    d.appendChild(el("small", null, k));
+    d.appendChild(el("b", null, v));
+    stats.appendChild(d);
+  });
+  card.appendChild(stats);
+  const actions = el("div", "mini-actions");
+  const trade = el("button", "btn primary tiny", online ? "🤝 Send trade request" : "🤝 Trade request");
+  trade.disabled = !online;
+  trade.title = online ? "Ask " + m.name + " to trade"
+    : "Trade requests need them online — they are offline right now";
+  trade.onclick = () => {
+    if (!online) return;
+    if (!activeAccount()) { toast("Sign in to send trade requests."); return; }
+    netSignal("trade-request", { to: online.id })
+      .then(() => toast("Trade request sent to " + m.name + " — they will see it up top."))
+      .catch(e => toast("Could not send that request: " + (e.message || e)));
+    closeMini();
+  };
+  actions.appendChild(trade);
+  const close = el("button", "btn tiny", "Close");
+  close.onclick = closeMini;
+  actions.appendChild(close);
+  card.appendChild(actions);
+  card.classList.add("on");
+  // keep the card on screen, near the tapped message
+  const w = card.offsetWidth || 300, h = card.offsetHeight || 180;
+  const x = Math.min(Math.max(10, (window.innerWidth - w) / 2), window.innerWidth - w - 10);
+  const y = Math.min(Math.max(64, window.innerHeight / 2 - h / 2), window.innerHeight - h - 10);
+  card.style.left = Math.round(x) + "px";
+  card.style.top = Math.round(y) + "px";
+}
+function closeMini() {
+  const card = document.getElementById("mini");
+  if (card) card.classList.remove("on");
+}
+function showChat(on) {
+  const visible = on !== false;
+  if (visible) closeOverlays("chat");
+  document.getElementById("chat").classList.toggle("on", visible);
+  CHAT.open = visible;
+  if (visible) {
+    renderChat();
+    loadChat();
+    if (CHAT.timer) clearInterval(CHAT.timer);
+    CHAT.timer = setInterval(loadChat, 10000);      // and SSE appends live between polls
+  } else {
+    closeMini();
+    if (CHAT.timer) { clearInterval(CHAT.timer); CHAT.timer = null; }
+  }
+  syncTopTabs();
+}
+/* ------------------------ profile pictures -------------------------------- */
+function renderPfp() {
+  const row = document.getElementById("pfp-row");
+  if (!row) return;
+  const acct = activeAccount();
+  row.textContent = "";
+  const current = acct && acct.avatar;
+  PFP_CHOICES.forEach(g => {
+    const b = el("div", "pfp" + (current === g ? " on" : ""), g);
+    b.title = "Use " + g + " as your profile picture";
+    b.onclick = () => setPfp(g);
+    row.appendChild(b);
+  });
+  const gpic = googlePicFor(acct);
+  if (gpic) {
+    const g = el("div", "pfp" + (current === gpic ? " on" : ""), "G");
+    g.title = "Use your Google picture";
+    g.onclick = () => setPfp("google");
+    row.appendChild(g);
+  }
+  if (current) {
+    const none = el("div", "pfp", "∅");
+    none.title = "No picture";
+    none.onclick = () => setPfp("");
+    row.appendChild(none);
+  }
+}
+// Google hands us a picture URL at sign-in. Remember it per account so switching to a
+// glyph does not throw it away for good.
+const GPIC_KEY = "seaSiege.gpic.v1";
+function rememberGooglePic(acct) {
+  try {
+    if (acct && acct.id && typeof acct.avatar === "string" && /^https?:/.test(acct.avatar)) {
+      const db = JSON.parse(localStorage.getItem(GPIC_KEY) || "{}");
+      if (db[acct.id] !== acct.avatar) {
+        db[acct.id] = acct.avatar;
+        localStorage.setItem(GPIC_KEY, JSON.stringify(db));
+      }
+    }
+  } catch (e) { /* private mode: the picker just won't offer it */ }
+}
+function googlePicFor(acct) {
+  try { return (JSON.parse(localStorage.getItem(GPIC_KEY) || "{}"))[(acct || {}).id] || null; }
+  catch (e) { return null; }
+}
+function setPfp(choice) {
+  const acct = activeAccount();
+  if (!acct) { toast("Sign in to choose a profile picture."); return; }
+  let avatar;
+  if (choice === "google") {
+    avatar = googlePicFor(acct);
+    if (!avatar) { toast("No Google picture on file for this account."); return; }
+  } else {
+    avatar = choice || null;
+  }
+  api("/api/account/avatar", { token: (readSession() || {}).token, avatar: avatar }, 12000)
+    .then(j => {
+      if (j && j.account) {
+        // mirror the updated account locally, exactly as the other account replies do
+        const db = loadAccounts();
+        db.accounts[j.account.id] = Object.assign({}, db.accounts[j.account.id] || {}, j.account);
+        saveAccounts(db);
+      } else if (activeAccount()) {
+        activeAccount().avatar = avatar;
+      }
+      paintAvatar(document.getElementById("chip-avatar"), activeAccount());
+      paintAvatar(document.getElementById("pf-avatar"), activeAccount());
+      renderPfp();
+      renderTopBar();
+      toast(avatar ? "Profile picture updated." : "Profile picture cleared.");
+    })
+    .catch(e => toast("Could not save that picture: " + (e.message || e)));
+}
 function renderCratesPanel() {
   const body = document.getElementById("crates-body");
   if (!body) return;
@@ -5914,6 +6332,14 @@ function ui() {
   nw.disabled = G.waveActive || G.over;
   nw.textContent = G.waveActive ? "⚔ Wave " + G.wave + " in progress…" : "▶ Start Wave " + (G.wave + 1);
   document.getElementById("btn-pause").textContent = G.paused ? "▶ Resume" : "⏸ Pause";
+  // Forfeit only makes sense while a run is actually live.
+  const fb = document.getElementById("btn-forfeit");
+  if (fb) {
+    const live = !G.over && (G.waveActive || G.wave > 0);
+    fb.disabled = !live;
+    fb.title = live ? "End this run now (recorded as a loss)" : "Nothing to forfeit yet — start a wave first";
+    if (!live) fb.textContent = "🏳 Forfeit run";   // drop any half-armed label
+  }
   document.getElementById("btn-rush").textContent = "⏩ Speed ×" + G.speed;
   const mv = document.getElementById("move");
   mv.textContent = G.moving ? "↔ Placing… (Esc)" : "↔ Relocate";
@@ -6044,6 +6470,15 @@ for (const [k, id] of [["rate", "g-rate"], ["range", "g-range"], ["dmg", "g-dmg"
 document.getElementById("g-repair").onclick = () => buyGlobal("repair");
 document.getElementById("next-wave").onclick = () => { audioInit(); startWave(); };
 document.getElementById("btn-pause").onclick = () => { G.paused = !G.paused; ui(); };
+// Forfeit: end the run on purpose. Two taps, because it throws the run away.
+const forfeitBtn = document.getElementById("btn-forfeit");
+forfeitBtn.onclick = () => armConfirm(forfeitBtn, "🏳 Forfeit run — tap again", () => {
+  if (G.over) return;
+  sfx("deny");
+  banner("Run forfeited", "#ff9f9f");
+  toast("Run forfeited at wave " + G.wave + " — recorded as a loss, not a best.");
+  endGame(false);
+});
 document.getElementById("btn-rush").onclick = () => { G.speed = G.speed === 1 ? 2 : (G.speed === 2 ? 3 : 1); toast("Game speed ×" + G.speed); ui(); };
 document.getElementById("auto").onchange = e => { G.auto = e.target.checked; toast("Auto-start " + (G.auto ? "enabled" : "disabled") + "."); };
 document.getElementById("grid").onchange = e => { G.showGrid = e.target.checked; };
@@ -6136,6 +6571,12 @@ document.getElementById("google-play").onclick = () => { audioInit(); promptGoog
 document.getElementById("top-profile").onclick = () => toggleOverlay("profile");
 document.getElementById("top-trade").onclick = () => toggleOverlay("trade");
 document.getElementById("top-crates").onclick = () => toggleOverlay("crates");
+document.getElementById("top-chat").onclick = () => toggleOverlay("chat");
+document.getElementById("chat-x").onclick = () => showChat(false);
+document.getElementById("chat-send").onclick = sendChat;
+document.getElementById("chat-input").addEventListener("keydown", ev => {
+  if (ev.key === "Enter") { ev.preventDefault(); sendChat(); }
+});
 document.getElementById("crates-x").onclick = () => showCrates(false);
 document.getElementById("crates-close").onclick = () => showCrates(false);
 document.getElementById("trade-x").onclick = () => showTrade(false);
