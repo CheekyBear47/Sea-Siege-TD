@@ -647,7 +647,7 @@
     <span class="brand-mark">⚓</span>
     <span class="brand-text">Sea Siege<small>Tower Defense</small></span>
   </div>
-  <div class="top-wallet" id="top-wallet" title="Gems are earned by clearing waves — a score, not a shop">
+  <div class="top-wallet" id="top-wallet" title="Gems are earned by clearing waves and spent on crates">
     <span class="gem-ico">💎</span><b id="top-gems">0</b><span class="top-wallet-lbl">gems</span>
   </div>
   <div class="top-wallet worth" id="top-worth" title="Worth points: the total value of every collectible you own">
@@ -750,7 +750,7 @@
       </div>
       <div id="crates-body"></div>
       <div class="board-foot">
-        <span class="hint" style="flex:1;align-self:center">Crates are never sold — win them from boss waves and wave milestones, then spin them for collectibles.</span>
+        <span class="hint" style="flex:1;align-self:center">Every crate is bought with gems you earn in play — spin it to roll for a collectible.</span>
         <button class="btn primary" id="crates-close">Done</button>
       </div>
     </div></div>
@@ -1353,21 +1353,59 @@ function towerStats(t) {
 }
 // Steep and unforgiving: HP compounds polynomially, hull armour climbs with the wave
 // so plain damage stops being enough, and the fleet slowly outruns cheap turrets.
+// On top of that the brief asks for two deliberate walls: a real spike past wave 50 and
+// a brutal one past wave 100, where only strict min-maxing survives.
 function enemyHpMul() {
   const w = Math.max(0, G.wave - 1);
-  return (1 + Math.pow(w, 1.52) * 0.34 + w * 0.06) * DIFFICULTY[G.diff].hp;
+  let m = 1 + Math.pow(w, 1.52) * 0.34 + w * 0.06;
+  if (w > 50) m *= 1 + 0.055 * (w - 50);        // from wave 51: compounding, not creeping
+  if (w > 100) m *= 1 + 0.13 * (w - 100);       // from wave 101: brutal
+  return m * DIFFICULTY[G.diff].hp;
 }
 function enemySpeedMul() {
   return Math.min(2.45, 1 + 0.034 * (G.wave - 1)) * DIFFICULTY[G.diff].speed;
 }
-function enemyArmorBonus() { return Math.min(0.32, 0.0068 * Math.max(0, G.wave - 1)); }
+// Armour keeps climbing past wave 100 - the late fleet shrugs off un-pierced damage.
+function enemyArmorBonus() {
+  const w = Math.max(0, G.wave - 1);
+  return Math.min(w > 100 ? 0.42 : 0.32, 0.0068 * w);
+}
 // Gold is scarce on purpose: kill money barely keeps up with the fleet's HP growth.
 function enemyGoldMul() { return (1 + 0.016 * (G.wave - 1) + 0.03 * G.globals.gold) * DIFFICULTY[G.diff].gold; }
-// Bosses scale far more gently than the escort fleet, so wave-5+ bosses stay killable.
+// Which Leviathan this is: the first at wave 15, the second at 30, and so on.
+function bossIndex() { return Math.max(1, Math.floor(G.wave / 15)); }
+function bossName() {
+  if (G.wave === 100) return "The Drowned Colossus";     // its own thing entirely
+  const k = bossIndex();
+  return k === 1 ? "Leviathan" : k === 2 ? "Elder Leviathan" : k === 3 ? "Dread Leviathan"
+    : "Leviathan Mk " + k;
+}
+// The Wave 100 boss is a set-piece: exactly 500,000 health, no formula, so the number on
+// screen is the number in the fight.
+const BOSS_100_HP = 500000;
+const BOSS_100_WAVE = 100;
+// Bosses move on their own curve, and it is capped: a Leviathan is a wall to break, not
+// a sprinter, so it always stays slower than the escort fleet (otherwise "high health"
+// stops being a damage race and becomes an instant leak). The Wave 100 colossus is the
+// quick exception - still comfortably under the fleet it arrives with.
+function bossSpeedMul() {
+  const base = Math.min(1.9, 1 + 0.03 * Math.max(0, G.wave - 1));
+  return G.wave === BOSS_100_WAVE ? base * 1.15 : base * 0.8;
+}
+// Bosses have their own scaling curve. They ride the wave curve like the fleet, but on
+// top of that each Leviathan is a step up on the last - so the one at wave 150 is a
+// different animal to the one at wave 15, and the end-game ones are genuine walls.
+function bossGrowth() {
+  const k = bossIndex() - 1;
+  return 1 + 0.22 * k + 0.06 * k * k;
+}
 function enemyHp(type) {
   const m = enemyHpMul();
-  const scaled = type === "boss" ? 1 + (m - 1) * 0.55 : m;
-  return Math.round(ENEMIES[type].hp * scaled);
+  if (type === "boss") {
+    if (G.wave === BOSS_100_WAVE) return BOSS_100_HP;   // exactly 500,000, as briefed
+    return Math.round(ENEMIES.boss.hp * (1 + (m - 1) * 0.55) * bossGrowth());
+  }
+  return Math.round(ENEMIES[type].hp * m);
 }
 
 /* --------------------------------- audio ---------------------------------- */
@@ -1480,7 +1518,9 @@ function spawnEnemy(type, distAlong) {
   const e = {
     type, x: p.x, y: p.y, ang: p.ang, d: distAlong || 0,
     hpMax: hp, hp: hp,
-    speed: b.speed * enemySpeedMul(), armor: Math.min(0.72, b.armor + enemyArmorBonus()), r: b.r,
+    speed: b.speed * (type === "boss" ? bossSpeedMul() : enemySpeedMul()),
+    armor: Math.min(0.72, b.armor + enemyArmorBonus()),
+    r: b.r * (type === "boss" && G.wave === BOSS_100_WAVE ? 1.55 : 1),
     gold: Math.round(b.gold * enemyGoldMul()), slowT: 0, slowAmt: 0,
     subPhase: rnd(0, 6), submerged: false, revealed: 0, hitFlash: 0, wake: rnd(0, 4),
     dead: false, bob: rnd(0, TAU), spawnScale: 0
@@ -1747,8 +1787,9 @@ function waveComp(n) {
   for (let i = 0; i < skiffs; i++) list.push("skiff");
   if (n >= 3) for (let i = 0; i < 1 + Math.floor((n - 3) / 1.6); i++) list.push("galleon");
   if (n >= 4) for (let i = 0; i < 1 + Math.floor((n - 4) / 2.2); i++) list.push("sub");
-  if (n % 5 === 0) list.push("boss");
-  if (n % 7 === 0) list.push("boss");      // double Leviathan from wave 7 on
+  // one Leviathan, every 15th wave: 15, 30, 45 ... up to the 10,000 cap - and always on
+  // wave 100, which is the briefed set-piece (100 is not a multiple of 15).
+  if (n % 15 === 0 || n === BOSS_100_WAVE) list.push("boss");
   // shuffle a little (keep the boss late)
   const last = list.filter(t => t === "boss");
   const rest = list.filter(t => t !== "boss");
@@ -1768,8 +1809,11 @@ function startWave() {
   G.spawnQueue = comp.map(type => { t += gap * (type === "boss" ? 2.6 : 1); return { type, t }; });
   sfx("wave");
   const isBoss = comp.includes("boss");
-  banner((isBoss ? "⚠ Wave " + G.wave + " — Leviathan!" : "Wave " + G.wave), isBoss ? "#ff9f9f" : "#8fd6ff");
-  toast("Wave " + G.wave + " incoming: " + comp.length + " ships" + (isBoss ? " (BOSS)" : ""));
+  banner(isBoss ? "⚠ Wave " + G.wave + " — " + bossName() + "!" : "Wave " + G.wave,
+         isBoss ? "#ff9f9f" : "#8fd6ff");
+  toast(isBoss
+    ? "🐋 " + bossName() + " incoming — " + fmtNum(enemyHp("boss")) + " HP. Boss waves land every 15."
+    : "Wave " + G.wave + " incoming: " + comp.length + " ships");
   if (isBoss) setTimeout(() => sfx("boss"), 500);
   ui();
 }
@@ -1810,20 +1854,7 @@ function waveCleared() {
   if (G.wave >= WAVE_CAP && !G.won) { endGame(true); return; }
   G.phase = "repair";                      // the structured inter-wave repair window
   // a boss wave pays out a Supply Crate for the crate room
-  // Crates are milestone rewards, never purchases: boss waves, then every 10/25/100 waves.
-  const earned = [];
-  const grant = kind => {
-    G.crates[kind] = (G.crates[kind] || 0) + 1;
-    earned.push(CRATES[kind].glyph + " " + CRATES[kind].name);
-  };
-  if (G.waveHadBoss) grant("supply");
-  if (G.wave % 10 === 0) grant("royal");
-  if (G.wave % 25 === 0) grant("admiral");
-  if (G.wave % 100 === 0) grant("reliquary");
-  if (earned.length) {
-    toast("🏆 Wave " + G.wave + " reward: " + earned.join(" · ") + " — spin it in the Crates tab.");
-    banner("Crate earned!", "#ffd166");
-  }
+  // No free crates: the gems banked here are what buys them in the Crates tab.
   if (G.auto) setTimeout(() => { if (!G.over) startWave(); }, 1400);
 }
 function wavePreview() {
@@ -4578,7 +4609,7 @@ function turretTooltip(type) {
 // Gems are earned only by clearing waves and are spent only on cosmetics, so
 // nothing in this file changes combat balance.
 const GEM_REWARD_WAVE = 1;
-const GEM_REWARD_BOSS = 3;
+const GEM_REWARD_BOSS = 12;   // bosses land every 15th wave, so each one pays well
 
 /* --------------------------- rarity & worth points ------------------------ */
 // Every collectible carries a rarity; rarity sets its Worth Points and its crate
@@ -4697,19 +4728,21 @@ const COSMETIC_CATS = [
 
 /* ------------------------- supply crates & chests ------------------------- */
 // Mythic drops stay under 1% on the cheap two, by design.
-// Four tiers, all won in play (boss waves and 10/25/100-wave milestones) - none is for sale.
+// Four tiers, bought with gems earned in play. There are no free crates: gems come
+// from clearing waves (+1) and from sinking a Leviathan (+12), and every collectible
+// in the game rolls out of one of these.
 const CRATES = {
-  supply: { name: "Supply Crate", glyph: "📦", tier: 1, from: "it drops from every boss wave",
-    desc: "every boss wave",
+  supply: { name: "Supply Crate", glyph: "📦", tier: 1, gems: 10,
+    desc: "the cheap roll — commons, with a rare sighting",
     odds: { common: 55, rare: 29, epic: 13.6, legendary: 2.0, mythic: 0.4 } },
-  royal:  { name: "Royal Chest",  glyph: "🎁", tier: 2, from: "it drops every 10th wave cleared",
-    desc: "every 10 waves",
+  royal:  { name: "Royal Chest",  glyph: "🎁", tier: 2, gems: 30,
+    desc: "no commons at all",
     odds: { common: 30, rare: 38, epic: 24, legendary: 7.1, mythic: 0.9 } },
-  admiral: { name: "Admiral's Vault", glyph: "⚜️", tier: 4, from: "it drops every 25th wave cleared",
-    desc: "every 25 waves · rare or better",
+  admiral: { name: "Admiral's Vault", glyph: "⚜️", tier: 4, gems: 80,
+    desc: "rare or better, every time",
     odds: { common: 0, rare: 26, epic: 46, legendary: 26.5, mythic: 1.5 } },
-  reliquary: { name: "Mythic Reliquary", glyph: "🔮", tier: 5, from: "it drops every 100th wave cleared",
-    desc: "every 100 waves · epic floor",
+  reliquary: { name: "Mythic Reliquary", glyph: "🔮", tier: 5, gems: 220,
+    desc: "epic floor — the only real mythic odds",
     odds: { common: 0, rare: 0, epic: 34, legendary: 62, mythic: 4 } }
 };
 function cratesHeld() { let n = 0; Object.keys(CRATES).forEach(k => { n += G.crates[k] || 0; }); return n; }
@@ -5280,13 +5313,22 @@ function rollCrate(kind, silent) {
   const crate = CRATES[kind];
   if (!crate) return null;
   const have = G.crates[kind] || 0;
-  if (have <= 0) {
-    // No shop: crates are earned in play (see the milestone drops in waveCleared).
-    sfx("deny");
-    toast("No " + crate.name + " in the hold — " + (crate.from || "earn one in play") + ".");
-    return null;
+  if (have > 0) {
+    G.crates[kind] = have - 1;                 // spend one already in the hold
+  } else {
+    // Buy it: crates are the only thing gems are for.
+    const price = crate.gems || 0;
+    if (G.gems < price) {
+      sfx("deny");
+      toast("Need " + (price - G.gems) + " more 💎 for a " + crate.name + ". Gems come from " +
+            "clearing waves (+1) and sinking a boss (+" + GEM_REWARD_BOSS + ").");
+      return null;
+    }
+    G.gems -= price;
+    G.gemsSpent = (G.gemsSpent || 0) + price;
+    sfx("coin");
+    toast("Bought a " + crate.name + " for " + price + " 💎.");
   }
-  G.crates[kind] = have - 1;
   const rar = pickRarity(crate.odds);
   const full = cratePool(rar);
   let pool = full.filter(x => !unlocked(x.cat, x.id));
@@ -5401,10 +5443,13 @@ function renderCrates(body) {
     top.appendChild(el("div", "crate-glyph", crate.glyph));
     const meta = el("div", "crate-meta");
     meta.appendChild(el("b", null, crate.name));
-    meta.appendChild(el("span", null, "in the hold: " + (G.crates[kind] || 0) + " · " + crate.from));
+    meta.appendChild(el("span", null, (G.crates[kind] || 0) > 0
+      ? "in the hold: " + G.crates[kind] + " · " + crate.desc
+      : crate.gems + " 💎 · " + crate.desc));
     top.appendChild(meta);
-    const btn = el("button", "btn tiny", (G.crates[kind] || 0) > 0 ? "Spin it" : "Not in the hold");
-    btn.disabled = (G.crates[kind] || 0) <= 0;
+    const held = G.crates[kind] || 0;
+    const btn = el("button", "btn tiny", held > 0 ? "Spin it · " + held : "Buy · " + crate.gems + " 💎");
+    btn.disabled = held <= 0 && G.gems < crate.gems;
     btn.onclick = () => rollCrate(kind);
     top.appendChild(btn);
     card.appendChild(top);
@@ -5476,10 +5521,10 @@ function renderCrates(body) {
   });
   body.appendChild(worths);
   const note = el("div", "crate-note",
-    "Nothing here is for sale. Supply Crates drop from every boss wave, Royal Chests every 10 waves, " +
-    "Admiral's Vaults every 25 and a Mythic Reliquary every 100. Mythic turret cards stay under 1% on the " +
-    "cheap two; the Vault and the Reliquary are where the odds really move. A duplicate refunds gems, so a " +
-    "crate is never wasted.");
+    "Gems are the crate currency: +" + GEM_REWARD_WAVE + " 💎 for every wave you clear and +" +
+    GEM_REWARD_BOSS + " 💎 for sinking a Leviathan (every 15th wave), so a long run funds the good crates. " +
+    "Mythic turret cards stay under 1% on the cheap two; the Vault and the Reliquary are where the odds " +
+    "really move. A duplicate refunds gems, so a crate is never wasted.");
   body.appendChild(note);
   const last = G.lastDrop;
   if (last) {
@@ -5568,7 +5613,7 @@ function renderInventory() {
   const crates = cratesHeld();
   document.getElementById("inv-sub").textContent =
     c.own + " of " + c.total + " discovered · ⭐ " + fmtNum(worthTotal()) + " worth points · 💎 " +
-    G.gems + " banked · 🎁 " + crates + " crate" + (crates === 1 ? "" : "s") + " to spin in the Crates tab";
+    G.gems + " 💎 to spend on crates · " + crates + " crate" + (crates === 1 ? "" : "s") + " in the hold";
   fillSelect("inv-cat",
     [["all", "All categories"]].concat(COSMETIC_CATS.map(cat => [cat.id, cat.label])), invCat);
   fillSelect("inv-filter", [["all", "All items"], ["owned", "Owned only"], ["locked", "Not yet owned"]], invFilter);
@@ -5643,7 +5688,7 @@ function renderCratesPanel() {
   if (status) {
     const held = cratesHeld();
     status.textContent = held ? held + " in the hold — spin one below"
-      : "empty hold · boss waves and every 10/25/100 waves refill it";
+      : G.gems + " 💎 banked · spend them on a crate below";
   }
   renderCrates(body);
 }

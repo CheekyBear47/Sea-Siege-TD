@@ -1,1 +1,8 @@
+# Postgres/Supabase persistence. Without it the server still runs, falling back to
+# accounts.json - but set DATABASE_URL and this is what stores accounts, inventories,
+# gems, gold, leaderboards and chat.
+psycopg2-binary>=2.9.9
+
+# Optional: only needed for the public ngrok link when USE_NGROK=1. Cloud hosts that
+# set PORT and leave USE_NGROK unset never import it.
 pyngrok>=7.2.0

@@ -9,35 +9,13 @@ Server starting on port 8000 (with ngrok)
   hub     : /api/events (SSE) - /api/join - /api/signal - /api/players
 [ngrok] using the authtoken stored in C:\Users\teddy\AppData\Local\ngrok\ngrok.yml
 [ngrok] note: could not write the token (PyngrokNgrokError) - continuing with the agent's existing configuration
-t=2026-11-03T18:19:38+1000 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
-ERROR:  authentication failed: Your account is limited to 3 simultaneous ngrok agent sessions.
-ERROR:  Run multiple endpoints at the same time from a single agent by defining them in your agent configuration file and running `ngrok start --all`.
-ERROR:  Read more about the agent configuration file: https://ngrok.com/docs/gateway/agent/config/ 
-ERROR:  You can view your current agent sessions in the dashboard: https://dashboard.ngrok.com/agents. Upgrade to a paid plan to remove this limit:
-ERROR:  https://dashboard.ngrok.com/billing/choose-a-plan
-ERROR:  
-ERROR:  ERR_NGROK_108
-ERROR:  https://ngrok.com/docs/errors/err_ngrok_108
-ERROR:  
-t=2026-11-03T18:19:38+1000 lvl=eror msg="failed to reconnect session" obj=tunnels.session err="authentication failed: Your account is limited to 3 simultaneous ngrok agent sessions.\nRun multiple endpoints at the same time from a single agent by defining them in your agent configuration file and running `ngrok start --all`.\nRead more about the agent configuration file: https://ngrok.com/docs/gateway/agent/config/ \nYou can view your current agent sessions in the dashboard: https://dashboard.ngrok.com/agents. Upgrade to a paid plan to remove this limit:\nhttps://dashboard.ngrok.com/billing/choose-a-plan\r\n\r\nERR_NGROK_108\r\n"
-t=2026-11-03T18:19:38+1000 lvl=eror msg="session closing" obj=tunnels.session err="authentication failed: Your account is limited to 3 simultaneous ngrok agent sessions.\nRun multiple endpoints at the same time from a single agent by defining them in your agent configuration file and running `ngrok start --all`.\nRead more about the agent configuration file: https://ngrok.com/docs/gateway/agent/config/ \nYou can view your current agent sessions in the dashboard: https://dashboard.ngrok.com/agents. Upgrade to a paid plan to remove this limit:\nhttps://dashboard.ngrok.com/billing/choose-a-plan\r\n\r\nERR_NGROK_108\r\n"
-t=2026-11-03T18:19:38+1000 lvl=crit msg="command failed" err="authentication failed: Your account is limited to 3 simultaneous ngrok agent sessions.\nRun multiple endpoints at the same time from a single agent by defining them in your agent configuration file and running `ngrok start --all`.\nRead more about the agent configuration file: https://ngrok.com/docs/gateway/agent/config/ \nYou can view your current agent sessions in the dashboard: https://dashboard.ngrok.com/agents. Upgrade to a paid plan to remove this limit:\nhttps://dashboard.ngrok.com/billing/choose-a-plan\r\n\r\nERR_NGROK_108\r\n"
-t=2026-11-03T18:19:38+1000 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.ngrok-agent.com/check\": context canceled"
-[ngrok] tunnel failed: The ngrok process errored on start: authentication failed: Your account is limited to 3 simultaneous ngrok agent sessions.\nRun multiple endpoints at the same time from a single agent by defining them in your agent configuration file and running `ngrok start --all`.\nRead more about the agent configuration file: https://ngrok.com/docs/gateway/agent/config/ \nYou can view your current agent sessions in the dashboard: https://dashboard.ngrok.com/agents. Upgrade to a paid plan to remove this limit:\nhttps://dashboard.ngrok.com/billing/choose-a-plan\r\n\r\nERR_NGROK_108\r\n.
-[ngrok] the free plan allows 3 agent sessions at once, and this account has
-[ngrok] that many already open (stale sessions from restarted servers count).
-[ngrok] fix: open https://dashboard.ngrok.com/agents and kill the old sessions,
-[ngrok] or wait a few minutes for them to expire, then start the server again.
-[ngrok] continuing with local hosting only.
-
-  PUBLIC  : (no tunnel - start the server with USE_NGROK=1 for remote play)
+  · 127.0.0.1 - "GET /api/health HTTP/1.1" 200 -
+  PUBLIC  : https://diagram-emboss-griminess.ngrok-free.dev
+            ^ share this HTTPS link (may show an ngrok interstitial first)
+            ^ everyone on it shows up in Trading & Players automatically
 ==================================================================
   Ctrl+C to stop.
 
-  · 127.0.0.1 - "GET /api/health HTTP/1.1" 200 -
   · 127.0.0.1 - "GET /api/leaderboard HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET /api/health HTTP/1.1" 200 -
   · 127.0.0.1 - "GET / HTTP/1.1" 200 -
   · 127.0.0.1 - "GET / HTTP/1.1" 200 -
