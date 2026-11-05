@@ -936,10 +936,16 @@ class Accounts:
 
     @staticmethod
     def public(acct: dict) -> dict:
-        """An account as the client may see it - never the password material."""
+        """An account as the client may see it - never the password material.
+
+        `hasPassword` tells the client whether a username/password is attached without
+        leaking any of it, so the profile can offer to link rather than re-offering a
+        thing that is already done.
+        """
         out = dict(acct)
         out.pop("salt", None)
         out.pop("hash", None)
+        out["hasPassword"] = bool(acct.get("hash"))
         return out
 
     @staticmethod
@@ -1007,6 +1013,35 @@ class Accounts:
         if not hmac.compare_digest(str(acct["hash"]), self._hash(password, acct.get("salt") or "")):
             raise ValueError("Wrong password.")
         with self.lock:
+            acct["lastSeen"] = int(time.time() * 1000)
+        self.flush()
+        return acct
+
+    def link_credentials(self, acct_id: str, username, password) -> dict:
+        """Attach a username/password to an EXISTING account (usually a Google one).
+
+        This is what stops a second, empty profile appearing when somebody who signed
+        in with Google later registers a username: the credential is added to the
+        account they already have, so their gems, turrets and stats stay with them.
+        """
+        username = str(username or "").strip()
+        if not USERNAME_RE.match(username):
+            raise ValueError("Username must be 3-16 characters: letters, numbers and underscores.")
+        if len(str(password or "")) < 6:
+            raise ValueError("Password must be at least 6 characters.")
+        with self.lock:
+            acct = self.accounts.get(acct_id)
+            if not acct:
+                raise ValueError("No such account.")
+            taken = self.find_username(username)
+            if taken and taken["id"] != acct_id:
+                raise ValueError("That username belongs to another account - pick a different one.")
+            salt = secrets.token_hex(16)
+            acct["username"] = username
+            acct["salt"] = salt
+            acct["hash"] = self._hash(password, salt)
+            # a linked account is reachable by both routes from now on
+            acct["linked"] = True
             acct["lastSeen"] = int(time.time() * 1000)
         self.flush()
         return acct
@@ -1315,7 +1350,7 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
                 # one field, either identifier: the username or the registered email
                 who = body.get("identifier") or body.get("username")
                 return self._acct_ok(ACCOUNTS.login_local(who, body.get("password")))
-            if action in ("session", "username", "save", "avatar"):
+            if action in ("session", "username", "save", "avatar", "link"):
                 acct = ACCOUNTS.by_token(body.get("token"))
                 if not acct:
                     return self._json({"ok": False, "error": "session expired"}, 401)
@@ -1327,6 +1362,10 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
                 if action == "avatar":
                     return self._acct_ok(ACCOUNTS.set_avatar(acct["id"], body.get("avatar")),
                                          token=body.get("token"))
+                if action == "link":
+                    return self._acct_ok(
+                        ACCOUNTS.link_credentials(acct["id"], body.get("username"), body.get("password")),
+                        token=body.get("token"))
                 fresh = ACCOUNTS.store_profile(acct, body.get("save"), body.get("boards"),
                                                body.get("stats"), body.get("baseRev"))
                 if not fresh:
