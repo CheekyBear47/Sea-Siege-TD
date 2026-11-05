@@ -1217,6 +1217,7 @@ function bakeTerrain(env) {
 const TOWERS = {
   /* ---------- rank 1 — 60..90 gold ---------- */
   longbow: {
+    grow: 0.55,
     name: "Longbow Nest", glyph: "🏹", cost: 110, rank: 1, kind: "Archery",
     dmg: 7, rate: 0.30, range: 192, projSpeed: 780, projType: "arrow",
     color: "#c8f08a", desc: "Rapid arrows",
@@ -1284,17 +1285,21 @@ const TOWERS = {
     // decoy and can be upgraded like anything else) but it destroys nothing on its own.
   flakcutter: {
     name: "Flak Cutter", glyph: "🔫", cost: 160, rank: 1, kind: "Rapid",
-    dmg: 0, rate: 1.35, range: 150, color: "#bfe3ff", desc: "a fast hull that deals no damage",
-    special: { name: "Flak Burst", text: "fires fast and often, but its shots carry no damage." }
+    dmg: 11, rate: 0.45, range: 150, projType: "bolt", projSpeed: 900, color: "#bfe3ff",
+    desc: "a rapid, cheap hull that chews through light ships",
+    special: { name: "Flak Burst", text: "fires twice as fast as anything else in its tier." }
   },
   pike: {
     name: "Pike Battery", glyph: "🎯", cost: 430, rank: 2, kind: "Piercing",
-    dmg: 38, rate: 1.9, range: 210, pierceBase: 2, color: "#9fd6ff", desc: "bolts that ignore plating",
+    dmg: 62, rate: 1.6, range: 210, pierceBase: 2, pierceArmor: true, projType: "bolt",
+    projSpeed: 880,
+    color: "#9fd6ff", desc: "bolts that ignore plating",
     special: { name: "Armour Pike", text: "bolts punch through hull armour and two ships at once." }
   },
   tidecaller: {
     name: "Tidecaller Shrine", glyph: "🌀", cost: 890, rank: 3, kind: "Control",
-    dmg: 62, rate: 1.6, range: 260, slow: 0.34, slowDur: 1.9, color: "#7fd0ff",
+    dmg: 62, rate: 1.6, range: 260, slow: 0.34, slowDur: 1.9,
+    projType: "bolt", projSpeed: 640, color: "#7fd0ff",
     desc: "churns the channel into a slow drag",
     special: { name: "Riptide", text: "everything it touches is dragged down to a crawl." }
   },
@@ -1531,8 +1536,15 @@ function towerStats(t) {
   const gR = 1 + 0.06 * G.globals.range;
   const gF = 1 + 0.08 * G.globals.rate;
   const s = t.st;
-  const dmg = b.dmg * (1 + 0.26 * s.dmg) * (1 + 0.22 * (t.tier - 1)) * gD;
-  const rate = b.rate / ((1 + 0.16 * s.rate) * (1 + 0.14 * (t.tier - 1)) * gF);
+  // `grow` scales how hard upgrades bite for a given turret. Any tower that multiplies its
+  // own damage - extra arrows, stacked pierce - compounds on top of the shared upgrade
+  // curve, so it needs a lower factor to stay on the ladder instead of running away with
+  // it. The Longbow Nest (3 arrows with a special, and pierce on every tier) is the case
+  // that prompted this: full upgrades made one 110-gold tier-I turret out-damage the whole
+  // tier-III board.
+  const grow = b.grow || 1;
+  const dmg = b.dmg * (1 + 0.26 * s.dmg * grow) * (1 + 0.22 * (t.tier - 1) * grow) * gD;
+  const rate = b.rate / ((1 + 0.16 * s.rate * grow) * (1 + 0.14 * (t.tier - 1) * grow) * gF);
   const range = b.range * (1 + 0.13 * s.range) * (1 + 0.08 * (t.tier - 1)) * gR;
   const spec = s.spec > 0;
   return {
@@ -1964,9 +1976,13 @@ function fireTower(t) {
   }
 
   /* ---- ballistic: bolt / arrow / shell / stone ---- */
-  const isBoltLike = b.projType === "bolt" || b.projType === "arrow";
+  // An unset projType used to fall through to the lobbed-shell branch, which only hurts
+  // anything via `splash` - so a turret with no projType silently dealt NOTHING. That is
+  // exactly how the Flak Cutter and Pike Battery ended up inert. Never let it be unset.
+  const ballKind = b.projType || (b.splash ? "shell" : "bolt");
+  const isBoltLike = ballKind === "bolt" || ballKind === "arrow";
   muzzle(t, ang);
-  sfx(isBoltLike ? (b.projType === "arrow" ? "arrow" : "bolt") : (b.projType === "stone" ? "trebuchet" : "cannon"), t.x, t.y);
+  sfx(isBoltLike ? (ballKind === "arrow" ? "arrow" : "bolt") : (ballKind === "stone" ? "trebuchet" : "cannon"), t.x, t.y);
   const shots = isBoltLike ? st.volley : 1;
   for (let i = 0; i < shots; i++) {
     const spread = shots > 1 ? (i - (shots - 1) / 2) * 0.16 : 0;
@@ -1974,9 +1990,13 @@ function fireTower(t) {
     const tx = target.x + rnd(-6, 6), ty = target.y + rnd(-6, 6);
     const sp = Math.hypot(tx - t.x, ty - t.y);
     G.projectiles.push({
-      kind: b.projType, x: t.x + Math.cos(a) * 20, y: t.y + Math.sin(a) * 20,
+      kind: ballKind, x: t.x + Math.cos(a) * 20, y: t.y + Math.sin(a) * 20,
       tx, ty, target, dmg: st.dmg, splash: st.splash, splashDmg: st.splashDmg,
-      speed: st.projSpeed, travel: 0, total: Math.max(sp, 1),
+      speed: st.projSpeed || 760, travel: 0, total: Math.max(sp, 1),
+      // Guard: a tower with no projSpeed used to spawn projectiles whose speed was
+      // undefined, so `step = speed * dt` was NaN, their position went NaN, the hit test
+      // was never true and `travel > total + 90` was never true either - an invisible,
+      // immortal, harmless shot. Default the speed so that cannot happen.
       pierce: st.pierce, hitList: [], ang: a, src: t, life: 4, pool: st.pool, arc: 0
     });
   }
@@ -3491,7 +3511,12 @@ function pushProfile() {
   // must NOT take the profile slot: an untouched browser sitting in a background tab
   // would otherwise keep bumping the revision and every push from the device the player
   // is actually using would be refused as stale.
-  const sig = JSON.stringify(payload.save || {}) + "|" + ((payload.boards || []).length);
+  // The signature covers everything the server stores. `stats` matters as much as the save
+  // blob: a finished run bumps the stats while the blob stays put (a finished run is not
+  // written into it), so without stats here a completed run could look like "nothing
+  // changed" and never be pushed.
+  const sig = JSON.stringify(payload.save || {}) + "|" + ((payload.boards || []).length) +
+    "|" + JSON.stringify(payload.stats || {});
   if (sig === lastPushSig) {
     saveState.at = Date.now();               // already up to date on the server
     return Promise.resolve({ ok: true, skipped: true });
@@ -3508,6 +3533,14 @@ function pushProfile() {
         // contentRev, the next payload prefers the stale mirror copy, and the auto-save
         // would keep re-pushing old progress.
         contentRev = j.account.rev || contentRev;
+      }
+      // Refused because this push based its work on an older revision (we just adopted the
+      // current one above, so an immediate retry cannot fail the same way). Without this
+      // the player's newest run sat unrecorded until some unrelated action happened to
+      // push again - which reads as "my run never made it onto the board".
+      if (j && j.stale && !pushProfile.retrying) {
+        pushProfile.retrying = true;
+        setTimeout(() => { pushProfile.retrying = false; pushProfile(); }, 150);
       }
       // Another device holds a newer copy. Cache it so the next load picks it up — the
       // run in progress is deliberately left alone (swapping the map mid-wave is worse).
@@ -5384,7 +5417,10 @@ function apiGet(path, ms) {
 }
 function loadGlobalBoard(force) {
   if (loadingGlobal) return;
-  if (globalBoard && !force && Date.now() - globalBoard.at < 20000) return;
+  // Was 20s, which meant a finished run could be missing from the global tab for a third
+  // of a minute. Opening the board forces a fetch anyway; this is just the floor for
+  // re-renders that happen to run back to back.
+  if (globalBoard && !force && Date.now() - globalBoard.at < 3000) return;
   loadingGlobal = true;
   apiGet("/api/leaderboard")
     .then(j => {
@@ -5471,6 +5507,11 @@ function recordRun() {
   bumpAccountStats({ runs: 1, bestWave: G.wave });
   saveGame();
   renderTopBar();
+  // Push the finished run at once. bumpAccountStats queues a push on a 1.5s debounce and
+  // the heartbeat covers it within 15s, but a run that ends as the player leaves should
+  // not be the one that goes missing. If the board is open, show the new row immediately.
+  pushSoon(250);
+  if (document.getElementById("board").classList.contains("on")) renderBoardOverlay();
   return entry;
 }
 function boardData() {
@@ -5691,7 +5732,7 @@ function showBoard(on) {
   const visible = on !== false;
   if (visible) closeOverlays("board");
   document.getElementById("board").classList.toggle("on", visible);
-  if (visible) renderBoardOverlay();
+  if (visible) { loadGlobalBoard(true); renderBoardOverlay(); }   // always fresh on open
   syncTopTabs();
 }
 
@@ -7017,7 +7058,11 @@ document.getElementById("board-clear").onclick = () => armConfirm(document.getEl
 window.addEventListener("beforeunload", () => {
   try { netLeave(); } catch (e) {}
   if (switchingProfile) return;
-  try { recordRun(); saveGame(); } catch (e) {}
+  // Order matters. The other beforeunload listener (registered earlier, for the save
+  // beacon) fires FIRST, so its payload predates this run - the run has to be recorded
+  // and then beaconed again from here or a tab closed at the end of a run never reaches
+  // the server's board at all.
+  try { recordRun(); saveGame(); beaconProfile(); } catch (e) {}
 });
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) { try { saveGame(); } catch (e) {} }
