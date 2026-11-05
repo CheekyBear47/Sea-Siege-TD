@@ -9,8 +9,8 @@ Server starting on port 8000 (with ngrok)
   hub     : /api/events (SSE) - /api/join - /api/signal - /api/players
 [ngrok] using the authtoken stored in C:\Users\teddy\AppData\Local\ngrok\ngrok.yml
 [ngrok] note: could not write the token (PyngrokNgrokError) - continuing with the agent's existing configuration
-t=2026-11-05T20:04:00+1000 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
-t=2026-11-05T20:04:01+1000 lvl=warn msg="failed to start tunnel" pg=/api/endpoints id=eef5d5a6e48ec3ec err="failed to start tunnel: The endpoint 'https://diagram-emboss-griminess.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
+t=2026-11-05T20:22:49+1000 lvl=warn msg="can't bind default web address, trying alternatives" obj=web addr=127.0.0.1:4040
+t=2026-11-05T20:22:50+1000 lvl=warn msg="failed to start tunnel" pg=/api/endpoints id=b55fb3b7e95fe097 err="failed to start tunnel: The endpoint 'https://diagram-emboss-griminess.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"
 [ngrok] tunnel failed: ngrok client exception, API returned 502: {"error_code":103,"status_code":502,"msg":"failed to start tunnel","details":{"err":"failed to start tunnel: The endpoint 'https://diagram-emboss-griminess.ngrok-free.dev' is already online. Either\n1. stop your existing endpoint first, or\n2. start both endpoints with `--pooling-enabled` to load balance between them.\r\n\r\nERR_NGROK_334\r\n"}}
 
 [ngrok] another ngrok agent is already holding this domain.
@@ -21,8 +21,3 @@ t=2026-11-05T20:04:01+1000 lvl=warn msg="failed to start tunnel" pg=/api/endpoin
 ==================================================================
   Ctrl+C to stop.
 
-  · 127.0.0.1 - "GET /api/health HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET /api/leaderboard HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET /api/chat HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -
-  · 127.0.0.1 - "GET / HTTP/1.1" 200 -

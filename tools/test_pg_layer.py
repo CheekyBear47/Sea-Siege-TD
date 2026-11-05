@@ -54,9 +54,22 @@ class FakeDB:
         self.leaderboards = []   # list of dicts
         self.sessions = {}       # token -> dict
         self.chat = []           # list of dicts
+        self.collections = {}    # (user_id, item_id) -> dict
+        self.trades = []         # list of dicts
         self.ddl = []
         self.queries = []
         self.fail_connect = False
+
+    def prune(self, table):
+        """Simulate `DELETE FROM <table> WHERE user_id NOT IN (SELECT id FROM users)`."""
+        store = getattr(self, table, None)
+        if isinstance(store, dict):
+            for k in [k for k, v in store.items() if v.get("user_id") not in self.users]:
+                del store[k]
+        elif isinstance(store, list):
+            self.__dict__[table] = [r for r in store
+                                    if r.get("user_id") in self.users or r.get("a") in self.users
+                                    or r.get("b") in self.users]
 
     # --- statement handling ------------------------------------------------
     @staticmethod
@@ -81,10 +94,14 @@ class FakeDB:
             return []
         if flat.startswith("INSERT INTO inventories"):
             uid, save, gems, gold, worth, owned, updated = params
-            self.inventories[uid] = dict(save=save, gems=gems, gold=gold, worth=worth,
-                                         owned=owned, updated_at=updated)
+            # user_id is a real column: keep it in the row so orphan-pruning can find it
+            self.inventories[uid] = dict(user_id=uid, save=save, gems=gems, gold=gold,
+                                         worth=worth, owned=owned, updated_at=updated)
             return []
         if flat.startswith("DELETE FROM leaderboards"):
+            if not params:
+                self.prune("leaderboards")
+                return []
             uid = params[0]
             self.leaderboards = [r for r in self.leaderboards if r["user_id"] != uid]
             return []
@@ -104,10 +121,51 @@ class FakeDB:
             uid, name, worth, body, at = params
             self.chat.append(dict(user_id=uid, name=name, worth=worth, body=body, at=at))
             return []
+        if flat.startswith("INSERT INTO collections"):
+            uid, item_id, rarity, worth, at = params
+            self.collections[(uid, item_id)] = dict(user_id=uid, item_id=item_id, rarity=rarity,
+                                                    worth=worth, at=at)
+            return []
+        if flat.startswith("DELETE FROM collections"):
+            if not params:
+                self.prune("collections")
+                return []
+            uid = params[0]
+            self.collections = {k: v for k, v in self.collections.items() if v["user_id"] != uid}
+            return []
+        if flat.startswith("INSERT INTO trades"):
+            a, b, state, offers, at = params
+            self.trades.append(dict(a=a, b=b, state=state, offers=offers, at=at))
+            return []
+        if flat.startswith("TRUNCATE TABLE"):
+            # the wipe: clear every table named in the statement and restart the identity
+            attrs = {"trades": "trades", "collections": "collections",
+                     "leaderboards": "leaderboards", "chat_history": "chat",
+                     "sessions": "sessions", "inventories": "inventories", "users": "users"}
+            for table, attr in attrs.items():
+                if table in flat:
+                    store = getattr(self, attr)
+                    store.clear()
+            self.seq = 0
+            self.truncated = getattr(self, "truncated", [])
+            self.truncated.append(flat)
+            return []
+        if flat.startswith("DELETE FROM") and "NOT IN (SELECT id FROM users)" in flat:
+            table = flat.split("DELETE FROM", 1)[1].split("WHERE")[0].strip()
+            self.prune("chat" if table == "chat_history" else table)
+            return []
         raise AssertionError(f"unhandled statement: {flat[:90]}")
 
     def fetch(self, sql, params=()):
         flat = " ".join(sql.split())
+        if flat.startswith("SELECT COUNT(*)"):
+            # check this first: otherwise COUNT(*) is mistaken for a column name and the
+            # real SELECT branches below answer with None
+            table = flat.split("FROM", 1)[1].strip()
+            return [(len(getattr(self, {"users": "users", "inventories": "inventories",
+                                        "leaderboards": "leaderboards",
+                                        "chat_history": "chat", "collections": "collections",
+                                        "trades": "trades", "sessions": "sessions"}[table])),)]
         cols = flat.split("SELECT", 1)[1].split(" FROM ", 1)[0]
         names = [c.strip().split(".")[-1] for c in cols.split(",")]
         if "FROM users" in flat:
@@ -125,6 +183,10 @@ class FakeDB:
             return [tuple(r.get(n) for n in names) for r in self.leaderboards]
         if "FROM sessions" in flat:
             return [tuple(r.get(n) for n in names) for r in self.sessions.values()]
+        if "FROM collections" in flat:
+            return [tuple(r.get(n) for n in names) for r in self.collections.values()]
+        if "FROM trades" in flat:
+            return [tuple(r.get(n) for n in names) for r in self.trades]
         if "FROM chat_history" in flat:
             lim = params[0] if params else 60
             return [tuple(r.get(n) for n in names) for r in self.chat[-int(lim):]][::-1]
@@ -132,7 +194,8 @@ class FakeDB:
             table = flat.split("FROM", 1)[1].strip()
             return [(len(getattr(self, {"users": "users", "inventories": "inventories",
                                         "leaderboards": "leaderboards",
-                                        "chat_history": "chat"}[table])),)]
+                                        "chat_history": "chat", "collections": "collections",
+                                        "trades": "trades", "sessions": "sessions"}[table])),)]
         raise AssertionError(f"unhandled select: {flat[:90]}")
 
 
@@ -224,7 +287,7 @@ def main():
              else d.split("INDEX IF NOT EXISTS")[1].split("ON")[0].strip() for d in db.ddl]
     for t in ("users", "inventories", "leaderboards", "chat_history", "sessions"):
         check(f"table {t} created", t in names, str(names))
-    check("indexes created too", len([d for d in db.ddl if "INDEX" in d]) == 2, str(db.ddl))
+    check("indexes created too", len([d for d in db.ddl if "INDEX" in d]) >= 3, str(db.ddl))
     check("the store reports healthy", srv.PG.ok is True, srv.PG.why)
 
     print("\n[2] accounts land in the database")

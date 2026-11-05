@@ -102,6 +102,11 @@ class Hub:
             self.done.append({"tid": tid, "a": a, "b": b,
                               "offers": {a: list(offers.get(a, [])), b: list(offers.get(b, []))},
                               "at": time.time()})
+        if PG and PG.ok:
+            try:
+                PG.save_trade(tid, a, b, offers)
+            except Exception as exc:
+                print(f"[db] could not log a trade ({exc})")
 
     def done_for(self, cid: str) -> list[dict]:
         """Replays this client's settled trades as execute events."""
@@ -383,7 +388,24 @@ DDL = [
          user_id    TEXT NOT NULL,
          created_at BIGINT DEFAULT 0
        )""",
+    """CREATE TABLE IF NOT EXISTS collections (
+         user_id  TEXT NOT NULL,
+         item_id  TEXT NOT NULL,
+         rarity   TEXT,
+         worth    INTEGER DEFAULT 0,
+         at       BIGINT DEFAULT 0,
+         PRIMARY KEY (user_id, item_id)
+       )""",
+    """CREATE TABLE IF NOT EXISTS trades (
+         id       BIGSERIAL PRIMARY KEY,
+         a        TEXT,
+         b        TEXT,
+         state    TEXT,
+         offers   JSONB,
+         at       BIGINT DEFAULT 0
+       )""",
     "CREATE INDEX IF NOT EXISTS leaderboards_user_idx ON leaderboards (user_id)",
+    "CREATE INDEX IF NOT EXISTS collections_user_idx ON collections (user_id)",
     "CREATE INDEX IF NOT EXISTS chat_at_idx ON chat_history (at DESC)",
 ]
 
@@ -522,6 +544,19 @@ class PgStore:
             (acct.get("id"), self.json(save), gems, gold,
              profile_worth(save) if save else 0, profile_owned(save) if save else 0,
              int(time.time() * 1000)))
+        # item collections, as a queryable index (the whole blob also lives above)
+        self.run("DELETE FROM collections WHERE user_id = %s", (acct.get("id"),))
+        try:
+            owned = owned_ids(save) if isinstance(save, dict) else {}
+        except Exception:
+            owned = {}
+        for item_id in sorted(owned):
+            self.run(
+                """INSERT INTO collections (user_id, item_id, rarity, worth, at)
+                   VALUES (%s,%s,%s,%s,%s) ON CONFLICT (user_id, item_id) DO UPDATE
+                   SET rarity = EXCLUDED.rarity, worth = EXCLUDED.worth""",
+                (acct.get("id"), item_id, str(owned[item_id]), ITEM_POINTS.get(str(owned[item_id]), 0),
+                 int(time.time() * 1000)))
         self.run("DELETE FROM leaderboards WHERE user_id = %s", (acct.get("id"),))
         for row in (acct.get("boards") or [])[-40:]:
             self.run(
@@ -529,6 +564,11 @@ class PgStore:
                    VALUES (%s,%s,%s,%s,%s,%s)""",
                 (acct.get("id"), str(row.get("kind") or "run"), int(row.get("wave") or 0),
                  int(row.get("score") or 0), int(row.get("worth") or 0), int(row.get("at") or 0)))
+
+    def save_trade(self, tid: str, a: str, b: str, offers: dict, state: str = "settled") -> None:
+        self.run(
+            """INSERT INTO trades (a, b, state, offers, at) VALUES (%s,%s,%s,%s,%s)""",
+            (a, b, state, self.json(offers or {}), int(time.time() * 1000)))
 
     def save_token(self, token: str, uid: str, at: float = 0) -> None:
         self.run(
@@ -555,6 +595,57 @@ class PgStore:
             out.append({"id": uid, "name": name, "worth": worth, "body": body, "at": at})
         return list(reversed(out))
 
+    # --- the global wipe ------------------------------------------------
+    def table_counts(self) -> dict:
+        out = {}
+        for t in WIPE_ORDER:
+            out[t] = self.count_rows(t)
+        return out
+
+    def wipe_all(self, backup_path: Path | None = None) -> dict:
+        """Truncate every table and restart its identity. Backs up first.
+
+        Children are listed before parents so the truncate is safe even without
+        CASCADE; RESTART IDENTITY puts every BIGSERIAL back to 1.
+        """
+        report = {"backend": "postgres", "rows_before": self.table_counts(), "backup": None}
+        if backup_path is not None:
+            dump = {}
+            for (table, sql) in (("users", "SELECT id, provider, username, name, email, avatar, sub, created_at, last_seen, rev, at, stats, record FROM users"),
+                                 ("inventories", "SELECT user_id, save, gems, gold, worth, owned, updated_at FROM inventories"),
+                                 ("collections", "SELECT user_id, item_id, rarity, worth, at FROM collections"),
+                                 ("leaderboards", "SELECT user_id, kind, wave, score, worth, at FROM leaderboards"),
+                                 ("chat_history", "SELECT user_id, name, worth, body, at FROM chat_history"),
+                                 ("trades", "SELECT a, b, state, offers, at FROM trades"),
+                                 ("sessions", "SELECT token, user_id, created_at FROM sessions")):
+                try:
+                    dump[table] = [list(r) for r in self.rows(sql)]
+                except Exception as exc:
+                    dump[table] = [f"<could not dump: {exc}>"]
+            backup_path.write_text(json.dumps(dump, indent=1, default=str), encoding="utf-8")
+            report["backup"] = str(backup_path)
+        with self.lock:
+            self.connect()
+            with self._conn.cursor() as cur:
+                cur.execute("TRUNCATE TABLE " + ", ".join(WIPE_ORDER) + " RESTART IDENTITY CASCADE")
+        report["rows_after"] = self.table_counts()
+        return report
+
+    def prune_orphans(self) -> dict:
+        """Remove rows whose owning account no longer exists. Never touches live data."""
+        removed = {}
+        for (table, col) in (("inventories", "user_id"), ("collections", "user_id"),
+                             ("leaderboards", "user_id"), ("sessions", "user_id")):
+            try:
+                before = self.count_rows(table)
+                self.run(f"DELETE FROM {table} WHERE {col} NOT IN (SELECT id FROM users)")
+                after = self.count_rows(table)
+                if before - after:
+                    removed[table] = before - after
+            except Exception as exc:
+                print(f"[db] could not prune {table} ({exc})")
+        return removed
+
     def count_rows(self, table: str) -> int:
         try:
             r = self.rows(f"SELECT COUNT(*) FROM {table}")
@@ -580,6 +671,15 @@ class MemoryChat:
     def recent_chat(self, limit: int = 60) -> list[dict]:
         return self.messages[-limit:]
 
+
+# Every table the game owns, children first. The wipe covers all of them.
+WIPE_ORDER = ["trades", "collections", "leaderboards", "chat_history", "sessions",
+              "inventories", "users"]
+WIPE_PHRASE = "WIPE ALL DATA"        # the admin route insists on this exact string
+# The admin wipe is DISABLED until a token is configured: an open endpoint that erases
+# every account is a worse failure than forgetting to set a variable.
+ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "").strip()
+WIPE_BACKUP_DIR = ROOT / "backups"
 
 PG = PgStore(DATABASE_URL) if DATABASE_URL else None
 _MEMCHAT = MemoryChat()
@@ -612,6 +712,46 @@ def chat_recent(limit: int = 60) -> list[dict]:
 
 
 CHAT = chat_store()
+
+
+def wipe_everything(reason: str = "manual", admin: bool = True) -> dict:
+    """Erase every account, inventory, collection, leaderboard, chat log, trade,
+    gem and gold record. Always writes a backup first. Returns a report.
+
+    Deliberately NOT called on boot unless WIPE_ON_START is set - a schema init that
+    emptied the tables would erase every player on each redeploy.
+    """
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    try:
+        WIPE_BACKUP_DIR.mkdir(exist_ok=True)
+    except OSError:
+        pass
+    report = {"at": int(time.time() * 1000), "reason": reason, "admin": bool(admin)}
+    if PG and PG.ok:
+        try:
+            report["postgres"] = PG.wipe_all(WIPE_BACKUP_DIR / f"postgres-before-wipe-{stamp}.json")
+        except Exception as exc:
+            report["postgres"] = {"error": str(exc)}
+    else:
+        report["postgres"] = {"backend": "json-fallback"}
+    report["json"] = ACCOUNTS.wipe(WIPE_BACKUP_DIR / f"accounts-before-wipe-{stamp}.json")
+    # live session state: the hub holds names, worths, trades and settled history
+    try:
+        with HUB.lock:
+            HUB.clients.clear()
+            HUB.trades.clear()
+            HUB.done.clear()
+    except Exception:
+        pass
+    try:
+        if isinstance(_MEMCHAT, MemoryChat):
+            _MEMCHAT.messages.clear()
+    except Exception:
+        pass
+    print(f"[wipe] GLOBAL WIPE complete ({reason}) - every account, inventory, collection, "
+          f"leaderboard, chat log, trade, gem and gold record is gone. Backup: "
+          f"{report.get('postgres', {}).get('backup') or report['json'].get('backup')}", flush=True)
+    return report
 
 
 class Accounts:
@@ -663,6 +803,28 @@ class Accounts:
                 self.tokens = blob.get("tokens") or {}
         except (OSError, ValueError) as exc:
             print(f"[auth] could not read {self.path.name} ({exc}) - starting empty")
+
+    def wipe(self, backup_path: Path | None = None) -> dict:
+        """Erase every account and session, after writing the whole store to a file."""
+        out = {"backend": "json", "accounts_before": len(self.accounts),
+               "sessions_before": len(self.tokens), "backup": None}
+        if backup_path is not None:
+            try:
+                backup_path.write_text(json.dumps(
+                    {"accounts": self.accounts, "tokens": self.tokens, "wiped": time.time()},
+                    default=str), encoding="utf-8")
+                out["backup"] = str(backup_path)
+            except OSError as exc:
+                out["backup_error"] = str(exc)
+        with self.lock:
+            self.accounts = {}
+            self.tokens = {}
+            self._sig = {}
+            self._tsig = None
+        self.flush()
+        out["accounts_after"] = len(self.accounts)
+        out["sessions_after"] = len(self.tokens)
+        return out
 
     def flush(self) -> None:
         """Persist every profile. Postgres when configured, else an atomic JSON write."""
@@ -1010,8 +1172,41 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
         return self.client_address[0] if self.client_address else "?"
 
     # --- routing ----------------------------------------------------------
+    # Anything here must never be served over HTTP. The static handler sits in the same
+    # directory as the account store, the backups and the server log, so without this a
+    # public link hands out every password hash and session token at /accounts.json.
+    BLOCKED_PREFIXES = ("/backups", "/tools", "/__pycache__", "/.git", "/venv", "/node_modules")
+    BLOCKED_FILES = {"/accounts.json", "/server.log", "/start.bat", "/requirements.txt",
+                     "/hub_test.txt", "/preview.png"}
+    BLOCKED_EXTS = (".json", ".log", ".py", ".pyc", ".bat", ".sh", ".ps1", ".tmp", ".bak",
+                    ".db", ".sqlite", ".sqlite3", ".sql", ".env", ".yml", ".yaml", ".toml",
+                    ".ini", ".cfg", ".md")
+
+    def _blocked(self, path: str) -> bool:
+        p = (path or "/").lower()
+        if p.startswith("/api/"):
+            return False                       # the API is routed above this
+        if any(p.startswith(pre) for pre in self.BLOCKED_PREFIXES):
+            return True
+        if p in {f.lower() for f in self.BLOCKED_FILES}:
+            return True
+        if any(seg.startswith(".") for seg in p.split("/") if seg):
+            return True                        # dotfiles: .env, .git internals, editors
+        return p.endswith(self.BLOCKED_EXTS)
+
+    def list_directory(self, path):            # no directory listings, ever
+        self.send_error(404, "No such file")
+        return None
+
+    def do_HEAD(self) -> None:  # noqa: N802 - stdlib signature
+        if self._blocked(urlparse(self.path).path):
+            return self.send_error(404, "No such file")
+        return super().do_HEAD()
+
     def do_GET(self) -> None:  # noqa: N802 - stdlib signature
         path = urlparse(self.path).path
+        if self._blocked(path):
+            return self.send_error(404, "No such file")
         if path == "/api/events":
             return self._sse()
         if path == "/api/players":
@@ -1055,6 +1250,28 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
             msg["prof"] = acct["id"]
             HUB.broadcast({"type": "chat", "msg": msg})
             return self._json({"ok": True, "msg": msg})
+        if path == "/api/admin/wipe-all-data":
+            # Erases every account, inventory, collection, leaderboard, chat log, trade,
+            # gem and gold record. Needs the admin token AND the exact phrase, and it
+            # writes a backup first. Add ?dry=1 (or "dry": true) to see the counts only.
+            if not ADMIN_TOKEN:
+                return self._json({"ok": False, "error":
+                                   "the admin wipe is disabled - set ADMIN_TOKEN on the server to enable it"}, 403)
+            if str(body.get("token") or "") != ADMIN_TOKEN:
+                print("  !! a wipe request arrived with the wrong admin token", flush=True)
+                return self._json({"ok": False, "error": "bad admin token"}, 401)
+            if str(body.get("confirm") or "") != WIPE_PHRASE:
+                return self._json({"ok": False, "error":
+                                   'refusing: send {"confirm": "' + WIPE_PHRASE + '"} to confirm'}, 400)
+            if body.get("dry") or "dry=1" in (self.path or ""):
+                counts = PG.table_counts() if (PG and PG.ok) else {}
+                return self._json({"ok": True, "dry": True, "postgres": counts,
+                                   "accounts": len(ACCOUNTS.accounts),
+                                   "sessions": len(ACCOUNTS.tokens),
+                                   "online": len(HUB.clients), "trades_open": len(HUB.trades),
+                                   "note": "nothing was deleted"})
+            report = wipe_everything(reason="admin route", admin=True)
+            return self._json({"ok": True, "dry": False, "report": report})
         if path == "/api/join":
             client = HUB.add_client(body.get("name"), body.get("prof"), body.get("worth"), self._remote)
             print(f"  + online: {client['name']} ({client['host']}) worth {client['worth']:,}"
@@ -1367,6 +1584,12 @@ def parse_args() -> argparse.Namespace:
                    help="where to keep player accounts (default: accounts.json)")
     p.add_argument("--no-verify-google", action="store_true",
                    help="skip Google's token check (offline development ONLY - unsafe)")
+    p.add_argument("--wipe-all-data", action="store_true",
+                   help="erase every account, inventory, collection, leaderboard, chat log, "
+                        "trade, gem and gold record, then exit. Requires --yes.")
+    p.add_argument("--wipe-on-start", action="store_true",
+                   help="wipe everything at boot before serving (same as WIPE_ON_START=1)")
+    p.add_argument("--yes", action="store_true", help="confirm a destructive command")
     return p.parse_args()
 
 
@@ -1488,6 +1711,20 @@ def main() -> int:
     root = str(Path(args.root).resolve())
     handler = functools.partial(QuietHandler, directory=root)
 
+    if args.wipe_all_data:
+        if not args.yes:
+            print("refusing to wipe without --yes")
+            print("  this erases EVERY account, inventory, collection, leaderboard, chat log,")
+            print("  trade, gem and gold record. Run:  python server.py --wipe-all-data --yes")
+            return 2
+        print("=" * 66)
+        print("  GLOBAL WIPE")
+        print("=" * 66)
+        report = wipe_everything(reason="--wipe-all-data", admin=True)
+        print(json.dumps(report, indent=1, default=str))
+        print("\n  every player is back to a blank slate. Backups are in ./backups/")
+        return 0
+
     if args.no_verify_google:
         VERIFY_GOOGLE = False
         print("[auth] WARNING: Google ID tokens are NOT being verified (--no-verify-google).")
@@ -1499,6 +1736,17 @@ def main() -> int:
         ACCOUNTS.path = wanted
         ACCOUNTS.accounts, ACCOUNTS.tokens = {}, {}
         ACCOUNTS.load()
+
+    # A schema init must NEVER silently empty the tables: that would erase every player
+    # on each redeploy. The default is to keep data and remove only orphaned rows; a full
+    # reset happens when it is explicitly asked for (WIPE_ON_START=1 or --wipe-on-start).
+    wipe_on_start = args.wipe_on_start or bool(os.environ.get("WIPE_ON_START"))
+    if wipe_on_start:
+        print("[wipe] WIPE_ON_START is set - erasing all player data before serving.")
+        wipe_everything(reason="startup flag", admin=True)
+    elif PG and PG.ok:
+        pruned = PG.prune_orphans()
+        print(f"[db] schema ready; orphan rows pruned: {pruned or 'none'} (set WIPE_ON_START=1 for a full reset)")
 
     print("=" * 66)
     print("  SEA SIEGE TOWER DEFENSE")

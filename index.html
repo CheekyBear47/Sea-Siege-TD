@@ -3313,6 +3313,7 @@ function adoptSession(j) {
   // `rev` is the server's profile revision: every pushed save must say which one it
   // was based on, so an older browser cannot overwrite a newer profile (see store_profile).
   writeSession({ token: j.token, id: acct.id, at: Date.now(), rev: acct.rev || 0 });
+  wipeNotice = null;                    // signed in again: the reset message is spent
   const db = loadAccounts();
   db.accounts[acct.id] = acct;
   db.order = db.order || [];
@@ -3836,7 +3837,12 @@ function showAuthPane(name) {
     initGoogle();
     if (googleReady) googleNote();     // restore the hint, not a stale error
   }
-  if (name === "local") setLocalMode(localMode);
+  if (name === "local") {
+    setLocalMode(localMode);
+    // A wipe notice has to survive this function (it clears the form errors below),
+    // so it is re-applied every time the local pane is shown.
+    if (wipeNotice) setAuthError("lo", wipeNotice);
+  }
   if (name === "username") {
     const input = document.getElementById("un-name");
     if (input) { input.value = ""; input.focus(); }
@@ -3948,9 +3954,37 @@ function gateLock(on) {
   if (on) { setAuthError("un", ""); setAuthError("lo", ""); setAuthError("google", ""); }
 }
 // The gatekeeper: runs on load, on sign-out and after a profile switch.
+// A boot check for the case the local mirror cannot know about: the account no longer
+// exists server-side (a global wipe, or an operator clearing sessions). Offline is NOT
+// this - an unreachable server must keep the player playing (see serverDown).
+function validateSession(token) {
+  if (!token) return;
+  api("/api/account/session", { token: token }, 12000)
+    .then(j => {
+      if (!j || j.ok === false || !j.account) throw new Error("session expired");
+      if (j.account.username && !(activeAccount() || {}).username) {
+        // the server knows a username this browser never learned
+        adoptSession(j);
+        applyProfileToStorage(j.account);
+      }
+    })
+    .catch(e => {
+      if (serverDown(e)) return;          // offline: the local mirror carries on
+      resetLocalAccount("Your account is no longer on the server (the harbour was reset) — " +
+                        "create a fresh captain below.");
+    });
+}
 function authGate() {
   const acct = activeAccount();
-  if (acct) { setPending(null); gateLock(false); return acct; }
+  if (acct) {
+    setPending(null);
+    gateLock(false);
+    // Still confirm the session exists: after a wipe every token is dead, and without
+    // this the player keeps playing a ghost account forever.
+    const sess = readSession();
+    if (sess && sess.token) validateSession(sess.token);
+    return acct;
+  }
   gateLock(true);
   // mid-onboarding after a reload?  Resume it where the player left off.
   const pend = readPending();
@@ -3977,9 +4011,40 @@ function resumeSession(token) {
       setTimeout(() => location.reload(), 220);
     })
     .catch(e => {
-      if (!serverDown(e)) writeSession(null);   // a rejected token is worthless
+      if (!serverDown(e)) {
+        // A rejected token is worthless - and after a global wipe EVERY token is
+        // rejected, so this is the path a wiped player lands on. Clear this browser's
+        // account state completely and ask them to register a fresh captain.
+        const wiped = /session|token|expired|unknown|no such|sign in|unauthor/i.test(String(e && e.message));
+        resetLocalAccount(wiped
+          ? "Your account is no longer on the server (the harbour was reset) — create a fresh one below."
+          : "");
+      }
       // unreachable or expired: the gate stays up with both sign-in methods offered
     });
+}
+// Clear everything this browser holds about a player, so a wiped server cannot leave a
+// half-signed-in page behind. Keeps cosmetic display prefs? No - a wipe means a clean
+// slate: session, mirror and the local save all go.
+let wipeNotice = null;
+function resetLocalAccount(notice) {
+  try {
+    writeSession(null);
+    writeAuth({ mode: null, current: null, at: Date.now() });
+    setPending(null);
+    ["seaSiege.accounts.v1", "seaSiege.save.v2", "seaSiege.leaderboard.v2",
+     "seaSiege.gpic.v1", "seaSiege.armory.v1"].forEach(k => {
+      try { localStorage.removeItem(k); } catch (e) {}
+    });
+  } catch (e) { /* private mode: nothing to clear */ }
+  wipeNotice = notice || null;
+  GATE_LOCKED = true;
+  gateLock(true);
+  // Straight to "Create account": a wiped player has no account to sign in to, so the
+  // only useful thing on screen is the registration form.
+  localMode = "register";
+  showAuthPane("local");
+  if (notice) toast(notice);
 }
 // --- profile dashboard -------------------------------------------------------
 function renderProfile() {
